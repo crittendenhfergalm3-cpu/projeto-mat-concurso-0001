@@ -12,6 +12,7 @@ import {
 import { useCart } from "@/context/CartContext";
 import { BUSINESS, waLink } from "@/data/business";
 import { api } from "@/lib/api";
+import { LogoMark } from "@/components/Logo";
 
 const Header = () => {
   const { count, setOpen } = useCart();
@@ -55,9 +56,7 @@ const Header = () => {
       <div className="border-b border-gray-200 bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3">
           <Link to="/" data-testid="logo-link" className="flex items-center gap-2">
-            <div className="flex h-11 w-11 items-center justify-center rounded-md bg-orange-600 font-display text-xl font-extrabold text-white">
-              SJ
-            </div>
+            <LogoMark className="h-11 w-11" />
             <div className="hidden leading-tight sm:block">
               <div className="font-display text-base font-bold text-gray-900">São José</div>
               <div className="text-[11px] font-medium uppercase tracking-wide text-gray-500">

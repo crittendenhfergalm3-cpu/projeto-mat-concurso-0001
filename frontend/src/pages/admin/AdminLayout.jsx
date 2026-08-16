@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useNavigate, Link } from "react-router-dom";
 import { LayoutDashboard, Package, ClipboardList, LogOut, ExternalLink } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { LogoMark } from "@/components/Logo";
 
 const links = [
   { to: "/admin", label: "Painel", icon: LayoutDashboard, end: true },
@@ -21,9 +22,7 @@ const AdminLayout = () => {
     <div className="flex min-h-screen bg-gray-50">
       <aside className="flex w-60 flex-col border-r border-gray-200 bg-white">
         <div className="flex items-center gap-2 border-b border-gray-200 px-5 py-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-orange-600 font-display text-sm font-extrabold text-white">
-            SJ
-          </div>
+          <LogoMark className="h-9 w-9" />
           <span className="font-display text-sm font-bold text-gray-900">Admin</span>
         </div>
         <nav className="flex-1 space-y-1 p-3">

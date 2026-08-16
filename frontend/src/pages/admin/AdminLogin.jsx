@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { LogoMark } from "@/components/Logo";
 
 const AdminLogin = () => {
   const { login } = useAuth();
@@ -33,9 +34,7 @@ const AdminLogin = () => {
     <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4">
       <div className="w-full max-w-sm rounded-lg bg-white p-8 shadow-xl">
         <div className="mb-6 flex flex-col items-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-md bg-orange-600 font-display text-2xl font-extrabold text-white">
-            SJ
-          </div>
+          <LogoMark className="h-14 w-14" />
           <h1 className="mt-4 font-display text-xl font-bold text-gray-900">Painel Administrativo</h1>
           <p className="text-sm text-gray-500">São José Material de Construção</p>
         </div>

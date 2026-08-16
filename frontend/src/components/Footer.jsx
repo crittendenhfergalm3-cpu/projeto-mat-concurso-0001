@@ -3,6 +3,7 @@ import { MapPin, Phone, Mail, Clock, ShieldCheck, Lock } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { BUSINESS, fullAddress, waLink } from "@/data/business";
 import { PaymentBadges } from "@/components/TrustBadges";
+import { LogoMark } from "@/components/Logo";
 
 const Footer = () => {
   return (
@@ -11,9 +12,7 @@ const Footer = () => {
         <div className="grid gap-10 md:grid-cols-4">
           <div>
             <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-orange-600 font-display text-lg font-extrabold text-white">
-                SJ
-              </div>
+              <LogoMark className="h-10 w-10" />
               <span className="font-display text-lg font-bold text-white">São José</span>
             </div>
             <p className="text-sm leading-relaxed text-gray-400">
