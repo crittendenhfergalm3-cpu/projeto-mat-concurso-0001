@@ -42,6 +42,7 @@ STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https
 STORAGE_URL = STORAGE_BASE.rstrip("/") + "/objstore/api/v1/storage"
 EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
 APP_NAME = "saojose"
+UPLOAD_DIR = ROOT_DIR / "uploads"
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -451,20 +452,34 @@ async def admin_stats(admin: dict = Depends(get_current_admin)):
 @api_router.post("/admin/upload")
 async def upload_image(file: UploadFile = File(...), admin: dict = Depends(get_current_admin)):
     ext = file.filename.split(".")[-1].lower() if "." in file.filename else "bin"
-    path = f"{APP_NAME}/products/{uuid.uuid4()}.{ext}"
     data = await file.read()
-    result = put_object(path, data, file.content_type or "application/octet-stream")
-    await db.files.insert_one({"id": str(uuid.uuid4()), "storage_path": result["path"],
-                               "content_type": file.content_type, "is_deleted": False,
+    content_type = file.content_type or "application/octet-stream"
+    # Try Emergent object storage; on any failure fall back to local disk (VPS-friendly)
+    try:
+        result = put_object(f"{APP_NAME}/products/{uuid.uuid4()}.{ext}", data, content_type)
+        storage_path = result["path"]
+    except Exception as e:
+        logger.error(f"Object storage indisponível, salvando em disco local: {e}")
+        UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+        fname = f"{uuid.uuid4()}.{ext}"
+        (UPLOAD_DIR / fname).write_bytes(data)
+        storage_path = f"local/{fname}"
+    await db.files.insert_one({"id": str(uuid.uuid4()), "storage_path": storage_path,
+                               "content_type": content_type, "is_deleted": False,
                                "created_at": datetime.now(timezone.utc).isoformat()})
-    backend = os.environ.get("REACT_APP_BACKEND_URL", "")
-    return {"path": result["path"], "url": f"/api/files/{result['path']}"}
+    return {"path": storage_path, "url": f"/api/files/{storage_path}"}
 
 @api_router.get("/files/{path:path}")
 async def serve_file(path: str):
     record = await db.files.find_one({"storage_path": path, "is_deleted": False})
     if not record:
         raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+    if path.startswith("local/"):
+        fpath = UPLOAD_DIR / path.split("/", 1)[1]
+        if not fpath.exists():
+            raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+        return Response(content=fpath.read_bytes(),
+                        media_type=record.get("content_type") or "application/octet-stream")
     data, content_type = get_object(path)
     return Response(content=data, media_type=record.get("content_type", content_type))
 
@@ -560,6 +575,7 @@ async def seed():
 
 @app.on_event("startup")
 async def startup():
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     try:
         init_storage()
         logger.info("Storage inicializado")

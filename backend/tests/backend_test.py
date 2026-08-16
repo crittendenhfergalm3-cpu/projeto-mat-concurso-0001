@@ -103,7 +103,8 @@ class TestCatalog:
         assert prices == sorted(prices)
 
     def test_product_detail(self):
-        listing = requests.get(f"{API}/products", params={"limit": 1}).json()["products"]
+        # Use featured=true to avoid picking a transient TEST_ product created by parallel workers
+        listing = requests.get(f"{API}/products", params={"featured": "true", "limit": 1}).json()["products"]
         slug = listing[0]["slug"]
         r = requests.get(f"{API}/products/{slug}")
         assert r.status_code == 200
@@ -243,3 +244,62 @@ class TestAdmin:
     def test_create_product_unauth(self):
         r = requests.post(f"{API}/products", json={"name": "X", "price": 1, "category": "x"})
         assert r.status_code == 401
+
+
+# --- Upload / File Serve (VPS fallback aware) ---
+# Tiny valid PNG (1x1 red pixel)
+_PNG_1x1 = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+    b"\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xf8\xcf\xc0"
+    b"\x00\x00\x00\x03\x00\x01\x5b\xd7\x1a\xe3\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+
+
+class TestUploadAndServe:
+    def test_upload_requires_auth(self):
+        r = requests.post(f"{API}/admin/upload",
+                          files={"file": ("test.png", _PNG_1x1, "image/png")})
+        assert r.status_code == 401
+
+    def test_upload_and_serve_image(self, admin_token):
+        headers = {"Authorization": f"Bearer {admin_token}"}
+        r = requests.post(f"{API}/admin/upload", headers=headers,
+                          files={"file": ("test.png", _PNG_1x1, "image/png")})
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert "path" in data and "url" in data
+        # Emergent storage returns saojose/products/<uuid>.png; local fallback returns local/<uuid>.png
+        assert data["path"].startswith("saojose/products/") or data["path"].startswith("local/")
+        assert data["url"] == f"/api/files/{data['path']}"
+
+        # Serve back
+        r2 = requests.get(f"{BASE_URL}{data['url']}")
+        assert r2.status_code == 200, f"serve failed: {r2.status_code} {r2.text[:200]}"
+        assert r2.headers.get("content-type", "").startswith("image/")
+        assert r2.content[:8] == b"\x89PNG\r\n\x1a\n"  # PNG magic bytes
+
+    def test_serve_missing_file_404(self):
+        r = requests.get(f"{API}/files/nonexistent/does-not-exist.png")
+        assert r.status_code == 404
+
+    def test_create_product_with_uploaded_image(self, admin_token):
+        headers = {"Authorization": f"Bearer {admin_token}"}
+        up = requests.post(f"{API}/admin/upload", headers=headers,
+                           files={"file": ("prod.png", _PNG_1x1, "image/png")}).json()
+        body = {"name": "TEST_Produto Upload Image", "description": "com foto",
+                "price": 9.9, "stock": 1, "category": "ferramentas",
+                "unit": "un", "brand": "TEST", "sku": "T-UP",
+                "images": [up["url"]], "featured": False, "active": True}
+        r = requests.post(f"{API}/products", json=body, headers={**headers, "Content-Type": "application/json"})
+        assert r.status_code == 200, r.text
+        created = r.json()
+        try:
+            # Refetch listing and verify image URL persisted
+            got = requests.get(f"{API}/products/{created['slug']}").json()
+            assert up["url"] in got["images"]
+            # And image resolves
+            img = requests.get(f"{BASE_URL}{up['url']}")
+            assert img.status_code == 200
+            assert img.headers.get("content-type", "").startswith("image/")
+        finally:
+            requests.delete(f"{API}/products/{created['id']}", headers=headers)

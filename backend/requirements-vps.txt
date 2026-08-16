@@ -1,0 +1,19 @@
+# Dependências LIMPAS para rodar no SEU VPS (sem pacotes exclusivos da Emergent).
+# Use este arquivo no VPS:  pip install -r requirements-vps.txt
+# (O requirements.txt padrão contém pacotes internos da Emergent que quebram
+#  o pip install fora da plataforma — por isso este arquivo separado.)
+
+fastapi==0.110.1
+uvicorn[standard]==0.25.0
+gunicorn>=21.2.0
+motor==3.3.1
+pymongo==4.6.3
+pydantic>=2.6
+email-validator>=2.2
+python-dotenv>=1.0
+bcrypt==4.1.3
+PyJWT>=2.10
+stripe>=9.0
+httpx>=0.27
+requests>=2.31
+python-multipart>=0.0.9

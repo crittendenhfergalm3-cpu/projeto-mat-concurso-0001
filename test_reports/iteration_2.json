@@ -1,0 +1,32 @@
+{
+  "summary": "Regression + upload/serve validation after VPS-friendly fallback refactor of upload_image()/serve_file(). Backend: 28/28 pytest passing including 4 new upload tests (auth required, upload→serve round-trip verifying PNG magic bytes + image/* content-type, 404 on missing file, product creation with uploaded image URL persisted and served). Object storage is working (returned path 'saojose/products/<uuid>.png', NOT 'local/...' fallback), confirming production path is intact and fallback only triggers on VPS. Frontend Playwright: home loads with new SVG logo in header (title 'São José Material de Construção | Loja de Materiais em São Luís/MA'), 24 product cards render, admin login works (JWT sj_token stored), admin/produtos page opens 'Novo produto' dialog, file upload via [data-testid='form-image-upload'] uploads image and preview renders from /api/files/saojose/products/<uuid>.png with 'Imagem enviada' success toast. Admin login logo renders correctly. Categories/products/checkout endpoints unchanged and passing.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py upload_image() fallback logic is clean: try put_object → on any exception write to UPLOAD_DIR and store 'local/<uuid>.ext'. Good defensive design for VPS.",
+    "serve_file() correctly branches on path.startswith('local/') to serve from disk; still validates existence via db.files record (prevents path-traversal via storage_path lookup). Good.",
+    "Minor: serve_file returns response with media_type from stored record but for local files does not fall back on file extension if content_type missing — currently defaults to application/octet-stream which is fine.",
+    "Minor: UPLOAD_DIR is created lazily inside the except branch; consider ensuring it exists at startup so first fallback write never races. Not blocking.",
+    "Minor: no file-size limit or MIME whitelist on /api/admin/upload — admin-only endpoint so risk is low, but flag for prod hardening.",
+    "Frontend Logo.jsx SVG renders in Header/Footer/AdminLogin/AdminLayout without layout breakage (verified visually)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py"
+  ],
+  "success_rate": {"backend": "100% (28/28)", "frontend": "100% critical flows"},
+  "test_credentials": "admin: smart-fox387-ded9dd06@darkemail.school / SaoJose@2026 (verified)",
+  "seed_data_creation": "Upload tests created a few files in db.files + object storage (saojose/products/*.png) and one TEST_ product ('TEST_Produto Upload Image') which is soft-deleted at end of the test.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "VPS fallback path in upload_image()/serve_file() is validated only in the happy path (Emergent storage works, so put_object succeeds and returns 'saojose/products/<uuid>.ext'). The 'local/...' branch is not exercised on this env by design — that will only trigger on a real VPS where INTEGRATION_PROXY_URL points to unreachable storage. To simulate locally, temporarily break STORAGE_URL to observe fallback. Frontend catalog route is /produtos (not /catalogo).",
+  "rca of the issue": "N/A — no functional bugs found; regression + upload/serve/exhibit flow all green."
+}
