@@ -1,44 +1,33 @@
 import { PageShell } from "@/components/PageShell";
 import { BUSINESS } from "@/data/business";
 
-const Frete = () => (
-  <PageShell title="Política de Entrega e Frete" subtitle="Prazos, regiões e valores">
+const Entrega = () => (
+  <PageShell title="Entrega dos Materiais" subtitle="Como você recebe seu conteúdo digital">
     <p>
-      A <strong>{BUSINESS.name}</strong> realiza entregas em {BUSINESS.address.city} e região.
-      O valor e o prazo do frete são calculados automaticamente no site a partir do seu CEP.
+      Todos os produtos vendidos pela <strong>{BUSINESS.name}</strong> são <strong>digitais</strong>
+      (apostilas em PDF e cursos em videoaulas). Não há envio de materiais físicos e, portanto,
+      <strong> não há cobrança de frete</strong>.
     </p>
 
-    <h2>1. Entrega local (São Luís e região)</h2>
+    <h2>Prazo de entrega</h2>
     <ul>
-      <li>Prazo estimado: 1 a 2 dias úteis.</li>
-      <li>Frete grátis para compras acima de R$ 300,00.</li>
-      <li>Opção de retirada gratuita na loja (Parque Atlântico).</li>
+      <li><strong>Pagamento por cartão (Stripe):</strong> o acesso é liberado imediatamente após a confirmação do pagamento, geralmente em poucos minutos.</li>
+      <li><strong>Compra pelo WhatsApp:</strong> após a confirmação do pagamento combinado com nossa equipe, o material é enviado em até 24 horas úteis.</li>
     </ul>
 
-    <h2>2. Outras regiões</h2>
+    <h2>Como você recebe</h2>
     <ul>
-      <li>Enviamos via transportadora com prazo de 5 a 10 dias úteis (padrão) ou 3 a 5 dias úteis (expressa).</li>
-      <li>O valor é calculado conforme o CEP e o volume do pedido.</li>
+      <li>Um link de acesso/download é exibido na tela de confirmação da compra.</li>
+      <li>Também enviamos o acesso para o <strong>e-mail cadastrado</strong> no checkout. Verifique a caixa de entrada e a pasta de spam.</li>
     </ul>
 
-    <h2>3. Prazo de postagem</h2>
+    <h2>Não recebeu?</h2>
     <p>
-      Pedidos aprovados são separados e despachados em até 2 dias úteis. O prazo de entrega começa
-      a contar após a confirmação do pagamento.
-    </p>
-
-    <h2>4. Recebimento</h2>
-    <p>
-      Confira o produto no ato da entrega. Havendo qualquer avaria no transporte, recuse o
-      recebimento ou registre a ocorrência e entre em contato conosco.
-    </p>
-
-    <h2>5. Dúvidas</h2>
-    <p>
-      Fale com a gente pelo WhatsApp {BUSINESS.phone} ou pelo e-mail{" "}
-      <a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a>.
+      Se o material não chegar no prazo informado, entre em contato pelo e-mail{" "}
+      <strong>{BUSINESS.email}</strong> ou pelo WhatsApp <strong>{BUSINESS.phone}</strong> informando o
+      número do pedido. Resolveremos o mais rápido possível.
     </p>
   </PageShell>
 );
 
-export default Frete;
+export default Entrega;

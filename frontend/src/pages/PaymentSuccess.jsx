@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { CheckCircle2, Loader2, XCircle, Package } from "lucide-react";
+import { CheckCircle2, Loader2, XCircle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api, formatBRL } from "@/lib/api";
 import { useCart } from "@/context/CartContext";
@@ -42,30 +42,42 @@ const PaymentSuccess = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
+  const downloads = (order?.items || []).filter((i) => i.download_url);
+
   return (
     <div className="mx-auto max-w-xl px-4 py-20 text-center" data-testid="payment-success-page">
       {status === "checking" && (
         <>
-          <Loader2 className="mx-auto h-12 w-12 animate-spin text-orange-600" />
+          <Loader2 className="mx-auto h-12 w-12 animate-spin text-emerald-600" />
           <h1 className="mt-4 font-display text-2xl font-bold">Confirmando seu pagamento...</h1>
-          <p className="mt-2 text-gray-500">Aguarde um instante, não feche esta página.</p>
+          <p className="mt-2 text-slate-500">Aguarde um instante, não feche esta página.</p>
         </>
       )}
       {status === "paid" && (
         <>
-          <CheckCircle2 className="mx-auto h-16 w-16 text-green-600" />
-          <h1 className="mt-4 font-display text-3xl font-bold text-gray-900">Pagamento confirmado!</h1>
+          <CheckCircle2 className="mx-auto h-16 w-16 text-emerald-600" />
+          <h1 className="mt-4 font-display text-3xl font-bold text-slate-900">Pagamento confirmado!</h1>
           {order && (
-            <p className="mt-2 text-gray-600">
-              Pedido <strong>#{order.order_number}</strong> · Total{" "}
-              <strong>{formatBRL(order.total)}</strong>
+            <p className="mt-2 text-slate-600">
+              Pedido <strong>#{order.order_number}</strong> · Total <strong>{formatBRL(order.total)}</strong>
             </p>
           )}
-          <p className="mt-2 text-gray-500">
-            Enviamos a confirmação para o seu e-mail. Em breve entraremos em contato para combinar a entrega.
-          </p>
-          <Link to="/produtos">
-            <Button className="mt-6 bg-orange-600 hover:bg-orange-700">Continuar comprando</Button>
+          {downloads.length > 0 ? (
+            <div className="mx-auto mt-6 max-w-md space-y-2 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-left">
+              <p className="text-sm font-semibold text-emerald-800">Seus materiais estão prontos:</p>
+              {downloads.map((i, idx) => (
+                <a key={idx} href={i.download_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-medium text-emerald-700 hover:underline">
+                  <Download className="h-4 w-4" /> {i.name}
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-slate-500">
+              Enviamos o acesso ao seu material para o e-mail informado. Verifique também a caixa de spam.
+            </p>
+          )}
+          <Link to="/apostilas">
+            <Button className="mt-6 bg-emerald-600 hover:bg-emerald-700">Ver mais materiais</Button>
           </Link>
         </>
       )}
@@ -73,15 +85,13 @@ const PaymentSuccess = () => {
         <>
           <XCircle className="mx-auto h-16 w-16 text-red-500" />
           <h1 className="mt-4 font-display text-2xl font-bold">Não foi possível confirmar</h1>
-          <p className="mt-2 text-gray-500">
+          <p className="mt-2 text-slate-500">
             {status === "timeout"
               ? "O pagamento está demorando a confirmar. Verifique seu e-mail ou fale conosco."
               : "Houve um problema com o pagamento. Tente novamente."}
           </p>
           <Link to="/checkout">
-            <Button variant="outline" className="mt-6 gap-2">
-              <Package className="h-4 w-4" /> Voltar ao checkout
-            </Button>
+            <Button variant="outline" className="mt-6">Voltar ao checkout</Button>
           </Link>
         </>
       )}

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, UploadFile, File, Form
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, UploadFile, File
 from fastapi.responses import Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -35,13 +35,13 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 
 EMAIL_BASE_URL = "https://integrations.emergentagent.com"
 EMAIL_KEY = os.environ.get("EMERGENT_EMAIL_KEY")
-EMAIL_FROM_NAME = os.environ.get("EMAIL_FROM_NAME", "São José Material de Construção")
+EMAIL_FROM_NAME = os.environ.get("EMAIL_FROM_NAME", "TÔ APROVADO Concursos Públicos")
 OWNER_EMAIL = os.environ.get("OWNER_EMAIL")
 
 STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
 STORAGE_URL = STORAGE_BASE.rstrip("/") + "/objstore/api/v1/storage"
 EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
-APP_NAME = "saojose"
+APP_NAME = "toaprovado"
 UPLOAD_DIR = ROOT_DIR / "uploads"
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -116,24 +116,43 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
-class Category(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    name: str
-    slug: str
-    icon: str = "package"
-    image: str = ""
-
 class ProductIn(BaseModel):
     name: str
     description: str = ""
     price: float
-    stock: int = 0
-    category: str
-    unit: str = "un"
-    brand: str = ""
-    sku: str = ""
+    category: str            # área do concurso (slug)
+    banca: str = ""          # CEBRASPE, FGV, FCC...
+    type: str = "apostila"   # apostila | curso | combo
+    pages: int = 0
+    format: str = "PDF"
+    author: str = ""
+    download_url: str = ""
     images: List[str] = []
     featured: bool = False
+    active: bool = True
+
+class ConcursoIn(BaseModel):
+    orgao: str
+    banca: str = ""
+    cargo: str = ""
+    vagas: str = ""
+    salario: str = ""
+    escolaridade: str = ""
+    uf: str = "Nacional"
+    status: str = "previsto"   # aberto | edital | previsto | encerrado
+    inscricao_inicio: str = ""
+    inscricao_fim: str = ""
+    data_prova: str = ""
+    link: str = ""
+    description: str = ""
+    active: bool = True
+
+class NoticiaIn(BaseModel):
+    title: str
+    summary: str = ""
+    content: str = ""
+    image: str = ""
+    category: str = "Concursos"
     active: bool = True
 
 class CartItem(BaseModel):
@@ -144,25 +163,16 @@ class CustomerInfo(BaseModel):
     name: str
     email: EmailStr
     phone: str
-    cep: str = ""
-    address: str = ""
+    cpf: str = ""
 
 class CheckoutRequest(BaseModel):
     items: List[CartItem]
     customer: CustomerInfo
-    shipping_cost: float = 0.0
-    shipping_label: str = ""
     origin_url: str
 
 class WhatsAppOrderRequest(BaseModel):
     items: List[CartItem]
     customer: CustomerInfo
-    shipping_cost: float = 0.0
-    shipping_label: str = ""
-
-class ShippingRequest(BaseModel):
-    cep: str
-    subtotal: float = 0.0
 
 def slugify(text: str) -> str:
     text = text.lower().strip()
@@ -188,7 +198,7 @@ async def login(body: LoginRequest):
 async def me(admin: dict = Depends(get_current_admin)):
     return admin
 
-# --- Categories ---
+# --- Categories (áreas de concurso) ---
 @api_router.get("/categories")
 async def get_categories():
     cats = await db.categories.find({}, {"_id": 0}).to_list(100)
@@ -196,21 +206,26 @@ async def get_categories():
         c["count"] = await db.products.count_documents({"category": c["slug"], "active": True})
     return cats
 
-# --- Products ---
+# --- Products (apostilas / cursos) ---
 @api_router.get("/products")
 async def get_products(category: Optional[str] = None, search: Optional[str] = None,
+                       banca: Optional[str] = None, type: Optional[str] = None,
                        sort: Optional[str] = "recent", featured: Optional[bool] = None,
                        page: int = 1, limit: int = 24):
     query = {"active": True}
     if category:
         query["category"] = category
+    if banca:
+        query["banca"] = banca
+    if type:
+        query["type"] = type
     if featured is not None:
         query["featured"] = featured
     if search:
         esc = re.escape(search)
         query["$or"] = [{"name": {"$regex": esc, "$options": "i"}},
                         {"description": {"$regex": esc, "$options": "i"}},
-                        {"brand": {"$regex": esc, "$options": "i"}}]
+                        {"banca": {"$regex": esc, "$options": "i"}}]
     sort_map = {"recent": ("created_at", -1), "price_asc": ("price", 1),
                 "price_desc": ("price", -1), "name": ("name", 1)}
     sort_field, sort_dir = sort_map.get(sort, ("created_at", -1))
@@ -223,7 +238,7 @@ async def get_products(category: Optional[str] = None, search: Optional[str] = N
 async def get_product(slug: str):
     product = await db.products.find_one({"slug": slug, "active": True}, {"_id": 0})
     if not product:
-        raise HTTPException(status_code=404, detail="Produto não encontrado")
+        raise HTTPException(status_code=404, detail="Material não encontrado")
     return product
 
 @api_router.post("/products")
@@ -246,35 +261,103 @@ async def create_product(body: ProductIn, admin: dict = Depends(get_current_admi
 async def update_product(product_id: str, body: ProductIn, admin: dict = Depends(get_current_admin)):
     existing = await db.products.find_one({"id": product_id})
     if not existing:
-        raise HTTPException(status_code=404, detail="Produto não encontrado")
-    update = body.model_dump()
-    await db.products.update_one({"id": product_id}, {"$set": update})
-    doc = await db.products.find_one({"id": product_id}, {"_id": 0})
-    return doc
+        raise HTTPException(status_code=404, detail="Material não encontrado")
+    await db.products.update_one({"id": product_id}, {"$set": body.model_dump()})
+    return await db.products.find_one({"id": product_id}, {"_id": 0})
 
 @api_router.delete("/products/{product_id}")
 async def delete_product(product_id: str, admin: dict = Depends(get_current_admin)):
     await db.products.update_one({"id": product_id}, {"$set": {"active": False}})
     return {"status": "ok"}
 
-# --- Shipping (mock, CEP based) ---
-@api_router.post("/shipping/calculate")
-async def calculate_shipping(body: ShippingRequest):
-    cep = re.sub(r'\D', '', body.cep)
-    if len(cep) != 8:
-        raise HTTPException(status_code=400, detail="CEP inválido. Digite 8 dígitos.")
-    options = []
-    is_local = cep.startswith("650") or cep.startswith("651") or cep.startswith("652")
-    if is_local:
-        free = body.subtotal >= 300
-        options.append({"label": "Entrega local (São Luís e região)",
-                        "cost": 0.0 if free else 25.0, "days": "1 a 2 dias úteis", "free": free})
-        options.append({"label": "Retirar na loja (Parque Atlântico)", "cost": 0.0, "days": "Pronto em 2h", "free": True})
-    else:
-        base = 45.0 + (0 if body.subtotal < 500 else 20.0)
-        options.append({"label": "Transportadora - Padrão", "cost": base, "days": "5 a 10 dias úteis", "free": False})
-        options.append({"label": "Transportadora - Expressa", "cost": base + 35.0, "days": "3 a 5 dias úteis", "free": False})
-    return {"cep": cep, "local": is_local, "options": options}
+# --- Concursos ---
+@api_router.get("/concursos")
+async def get_concursos(status: Optional[str] = None, uf: Optional[str] = None,
+                        search: Optional[str] = None, limit: int = 100):
+    query = {"active": True}
+    if status:
+        query["status"] = status
+    if uf:
+        query["uf"] = uf
+    if search:
+        esc = re.escape(search)
+        query["$or"] = [{"orgao": {"$regex": esc, "$options": "i"}},
+                        {"cargo": {"$regex": esc, "$options": "i"}},
+                        {"banca": {"$regex": esc, "$options": "i"}}]
+    order = {"aberto": 0, "edital": 1, "previsto": 2, "encerrado": 3}
+    items = await db.concursos.find(query, {"_id": 0}).sort("created_at", -1).to_list(limit)
+    items.sort(key=lambda c: order.get(c.get("status"), 9))
+    return items
+
+@api_router.get("/concursos/{concurso_id}")
+async def get_concurso(concurso_id: str):
+    item = await db.concursos.find_one({"id": concurso_id}, {"_id": 0})
+    if not item:
+        raise HTTPException(status_code=404, detail="Concurso não encontrado")
+    return item
+
+@api_router.post("/concursos")
+async def create_concurso(body: ConcursoIn, admin: dict = Depends(get_current_admin)):
+    doc = body.model_dump()
+    doc["id"] = str(uuid.uuid4())
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    await db.concursos.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.put("/concursos/{concurso_id}")
+async def update_concurso(concurso_id: str, body: ConcursoIn, admin: dict = Depends(get_current_admin)):
+    existing = await db.concursos.find_one({"id": concurso_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Concurso não encontrado")
+    await db.concursos.update_one({"id": concurso_id}, {"$set": body.model_dump()})
+    return await db.concursos.find_one({"id": concurso_id}, {"_id": 0})
+
+@api_router.delete("/concursos/{concurso_id}")
+async def delete_concurso(concurso_id: str, admin: dict = Depends(get_current_admin)):
+    await db.concursos.delete_one({"id": concurso_id})
+    return {"status": "ok"}
+
+# --- Notícias ---
+@api_router.get("/noticias")
+async def get_noticias(limit: int = 50):
+    return await db.noticias.find({"active": True}, {"_id": 0}).sort("created_at", -1).to_list(limit)
+
+@api_router.get("/noticias/{slug}")
+async def get_noticia(slug: str):
+    item = await db.noticias.find_one({"slug": slug, "active": True}, {"_id": 0})
+    if not item:
+        raise HTTPException(status_code=404, detail="Notícia não encontrada")
+    return item
+
+@api_router.post("/noticias")
+async def create_noticia(body: NoticiaIn, admin: dict = Depends(get_current_admin)):
+    doc = body.model_dump()
+    doc["id"] = str(uuid.uuid4())
+    base_slug = slugify(doc["title"])
+    slug = base_slug
+    i = 1
+    while await db.noticias.find_one({"slug": slug}):
+        i += 1
+        slug = f"{base_slug}-{i}"
+    doc["slug"] = slug
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    await db.noticias.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.put("/noticias/{noticia_id}")
+async def update_noticia(noticia_id: str, body: NoticiaIn, admin: dict = Depends(get_current_admin)):
+    existing = await db.noticias.find_one({"id": noticia_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Notícia não encontrada")
+    await db.noticias.update_one({"id": noticia_id}, {"$set": body.model_dump()})
+    return await db.noticias.find_one({"id": noticia_id}, {"_id": 0})
+
+@api_router.delete("/noticias/{noticia_id}")
+async def delete_noticia(noticia_id: str, admin: dict = Depends(get_current_admin)):
+    await db.noticias.delete_one({"id": noticia_id})
+    return {"status": "ok"}
 
 # --- Order helpers ---
 async def build_order_items(items: List[CartItem]):
@@ -283,15 +366,16 @@ async def build_order_items(items: List[CartItem]):
     for it in items:
         product = await db.products.find_one({"id": it.product_id}, {"_id": 0})
         if not product:
-            raise HTTPException(status_code=400, detail=f"Produto indisponível")
+            raise HTTPException(status_code=400, detail="Material indisponível")
         line = {"product_id": product["id"], "name": product["name"], "price": product["price"],
-                "quantity": it.quantity, "image": product["images"][0] if product.get("images") else ""}
+                "quantity": it.quantity, "image": product["images"][0] if product.get("images") else "",
+                "download_url": product.get("download_url", "")}
         subtotal += product["price"] * it.quantity
         order_items.append(line)
     return order_items, round(subtotal, 2)
 
 def gen_order_number():
-    return "SJ" + datetime.now().strftime("%y%m%d") + str(random.randint(1000, 9999))
+    return "TA" + datetime.now().strftime("%y%m%d") + str(random.randint(1000, 9999))
 
 async def send_order_email(order: dict):
     if not EMAIL_KEY:
@@ -300,20 +384,25 @@ async def send_order_email(order: dict):
         f"<tr><td style='padding:8px;border-bottom:1px solid #eee'>{i['name']} x{i['quantity']}</td>"
         f"<td style='padding:8px;border-bottom:1px solid #eee;text-align:right'>R$ {i['price']*i['quantity']:.2f}</td></tr>"
         for i in order["items"]])
+    downloads = "".join([
+        f"<li style='margin:6px 0'><a href='{i['download_url']}' style='color:#047857'>{i['name']}</a></li>"
+        for i in order["items"] if i.get("download_url")])
+    downloads_block = (f"<h3 style='margin-top:20px'>Seus materiais (download)</h3><ul>{downloads}</ul>"
+                       if downloads else
+                       "<p>Seus materiais serão enviados para este e-mail em instantes.</p>")
     html = f"""
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-      <div style="background:#EA580C;padding:24px;text-align:center">
-        <h1 style="color:#fff;margin:0;font-size:22px">São José Material de Construção</h1>
+      <div style="background:#047857;padding:24px;text-align:center">
+        <h1 style="color:#fff;margin:0;font-size:22px">TÔ APROVADO Concursos Públicos</h1>
       </div>
       <div style="padding:24px;color:#111">
-        <h2 style="margin-top:0">Pedido confirmado! 🧱</h2>
+        <h2 style="margin-top:0">Compra confirmada! 🎯</h2>
         <p>Olá {order['customer']['name']}, recebemos o seu pedido <strong>#{order['order_number']}</strong>.</p>
         <table style="width:100%;border-collapse:collapse;margin:16px 0">{rows}
-          <tr><td style="padding:8px">Frete ({order.get('shipping_label','')})</td><td style="padding:8px;text-align:right">R$ {order['shipping_cost']:.2f}</td></tr>
           <tr><td style="padding:8px;font-weight:bold">Total</td><td style="padding:8px;text-align:right;font-weight:bold">R$ {order['total']:.2f}</td></tr>
         </table>
-        <p>Em breve entraremos em contato pelo telefone {order['customer']['phone']} para combinar a entrega.</p>
-        <p style="color:#666;font-size:12px">SAO JOSE MATERIAL DE CONSTRUCAO LTDA - ME · CNPJ 60.219.119/0001-81<br>Av. Vale do Pimenta, 5 - Parque Atlântico, São Luís/MA</p>
+        {downloads_block}
+        <p style="color:#666;font-size:12px;margin-top:24px">TO APROVADO CURSOS PARA CONCURSOS PUBLICOS LTDA - ME · CNPJ 37.380.166/0001-90<br>R. Henri Dunant, 1066 - Santo Amaro, São Paulo/SP</p>
       </div>
     </div>"""
     payload = {"to": [order["customer"]["email"]], "subject": f"Pedido #{order['order_number']} confirmado",
@@ -332,19 +421,17 @@ async def send_order_email(order: dict):
 @api_router.post("/checkout/create-session")
 async def create_checkout(body: CheckoutRequest):
     order_items, subtotal = await build_order_items(body.items)
-    total = round(subtotal + body.shipping_cost, 2)
+    total = round(subtotal, 2)
     order_number = gen_order_number()
 
     line_items = [{
         "price_data": {"currency": "brl", "unit_amount": int(round(i["price"] * 100)),
                        "product_data": {"name": i["name"]}},
         "quantity": i["quantity"]} for i in order_items]
-    if body.shipping_cost > 0:
-        line_items.append({"price_data": {"currency": "brl", "unit_amount": int(round(body.shipping_cost * 100)),
-                                          "product_data": {"name": f"Frete - {body.shipping_label}"}}, "quantity": 1})
 
     session = stripe.checkout.Session.create(
         line_items=line_items, mode="payment",
+        customer_email=body.customer.email,
         success_url=f"{body.origin_url}/pagamento/sucesso?session_id={{CHECKOUT_SESSION_ID}}",
         cancel_url=f"{body.origin_url}/pagamento/cancelado",
         metadata={"order_number": order_number},
@@ -352,7 +439,6 @@ async def create_checkout(body: CheckoutRequest):
 
     order = {"id": str(uuid.uuid4()), "order_number": order_number, "items": order_items,
              "customer": body.customer.model_dump(), "subtotal": subtotal,
-             "shipping_cost": body.shipping_cost, "shipping_label": body.shipping_label,
              "total": total, "method": "stripe", "status": "pending", "payment_status": "pending",
              "session_id": session.id, "created_at": datetime.now(timezone.utc).isoformat(),
              "updated_at": datetime.now(timezone.utc).isoformat()}
@@ -416,45 +502,43 @@ async def stripe_webhook(request: Request):
 @api_router.post("/checkout/whatsapp")
 async def whatsapp_order(body: WhatsAppOrderRequest):
     order_items, subtotal = await build_order_items(body.items)
-    total = round(subtotal + body.shipping_cost, 2)
+    total = round(subtotal, 2)
     order_number = gen_order_number()
     order = {"id": str(uuid.uuid4()), "order_number": order_number, "items": order_items,
              "customer": body.customer.model_dump(), "subtotal": subtotal,
-             "shipping_cost": body.shipping_cost, "shipping_label": body.shipping_label,
              "total": total, "method": "whatsapp", "status": "novo", "payment_status": "a_combinar",
              "created_at": datetime.now(timezone.utc).isoformat(),
              "updated_at": datetime.now(timezone.utc).isoformat()}
     await db.orders.insert_one(order)
     lines = "\n".join([f"• {i['quantity']}x {i['name']} - R$ {i['price']*i['quantity']:.2f}" for i in order_items])
     msg = (f"*Novo pedido #{order_number}*\n\n{lines}\n\n"
-           f"Frete: {body.shipping_label or 'a combinar'} - R$ {body.shipping_cost:.2f}\n"
            f"*Total: R$ {total:.2f}*\n\n"
-           f"Cliente: {body.customer.name}\nTelefone: {body.customer.phone}\n"
-           f"CEP: {body.customer.cep}\nEndereço: {body.customer.address}")
+           f"Cliente: {body.customer.name}\nE-mail: {body.customer.email}\n"
+           f"Telefone: {body.customer.phone}\nCPF: {body.customer.cpf}")
     return {"order_number": order_number, "message": msg}
 
 # --- Admin ---
 @api_router.get("/admin/orders")
 async def admin_orders(admin: dict = Depends(get_current_admin)):
-    orders = await db.orders.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
-    return orders
+    return await db.orders.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
 
 @api_router.get("/admin/stats")
 async def admin_stats(admin: dict = Depends(get_current_admin)):
     total_products = await db.products.count_documents({"active": True})
     total_orders = await db.orders.count_documents({})
-    paid_orders = await db.orders.find({"payment_status": "paid"}, {"_id": 0}).to_list(1000)
+    paid_orders = await db.orders.find({"payment_status": "paid"}, {"_id": 0}).to_list(2000)
     revenue = sum(o["total"] for o in paid_orders)
-    pending = await db.orders.count_documents({"status": {"$in": ["pending", "novo"]}})
+    total_concursos = await db.concursos.count_documents({"active": True})
+    total_noticias = await db.noticias.count_documents({"active": True})
     return {"total_products": total_products, "total_orders": total_orders,
-            "revenue": round(revenue, 2), "pending": pending}
+            "revenue": round(revenue, 2), "total_concursos": total_concursos,
+            "total_noticias": total_noticias}
 
 @api_router.post("/admin/upload")
 async def upload_image(file: UploadFile = File(...), admin: dict = Depends(get_current_admin)):
     ext = file.filename.split(".")[-1].lower() if "." in file.filename else "bin"
     data = await file.read()
     content_type = file.content_type or "application/octet-stream"
-    # Try Emergent object storage; on any failure fall back to local disk (VPS-friendly)
     try:
         result = put_object(f"{APP_NAME}/products/{uuid.uuid4()}.{ext}", data, content_type)
         storage_path = result["path"]
@@ -485,7 +569,7 @@ async def serve_file(path: str):
 
 @api_router.get("/")
 async def root():
-    return {"message": "São José Material de Construção API"}
+    return {"message": "TÔ APROVADO Concursos Públicos API"}
 
 app.include_router(api_router)
 
@@ -498,62 +582,62 @@ app.add_middleware(
 )
 
 # --- Seed data ---
+IMG_STUDY = "https://images.unsplash.com/photo-1514369118554-e20d93546b30?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"
+IMG_LAW = "https://images.unsplash.com/photo-1618771623063-6c3faa854a61?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"
+IMG_LAW2 = "https://images.unsplash.com/photo-1479142506502-19b3a3b7ff33?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"
+IMG_ONLINE = "https://images.unsplash.com/photo-1501504905252-473c47e087f8?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"
+IMG_READ = "https://images.unsplash.com/photo-1571193161738-deaba9b6cc26?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"
+IMG_NOTES = "https://images.unsplash.com/photo-1547567667-1aa64e6f58dc?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"
+IMG_GOV = "https://images.unsplash.com/photo-1625426078245-6911839409dd?crop=entropy&cs=srgb&fm=jpg&w=1000&q=80&ixlib=rb-4.1.0"
+IMG_LIB = "https://images.unsplash.com/photo-1551818567-d49550a81408?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"
+
 CATEGORIES = [
-    {"name": "Cimento e Argamassa", "slug": "cimento-argamassa", "icon": "layers", "image": "https://images.unsplash.com/photo-1773394089934-3e29f2a3d6a9?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"},
-    {"name": "Tijolos e Blocos", "slug": "tijolos-blocos", "icon": "grid-3x3", "image": "https://images.unsplash.com/photo-1771575522109-caee5ff9e8b3?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"},
-    {"name": "Hidráulica", "slug": "hidraulica", "icon": "droplets", "image": "https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"},
-    {"name": "Elétrica", "slug": "eletrica", "icon": "zap", "image": "https://images.unsplash.com/photo-1518181835702-6eef8b4b2113?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"},
-    {"name": "Tintas e Acessórios", "slug": "tintas", "icon": "paint-bucket", "image": "https://images.unsplash.com/photo-1602740027538-35973ec88b9e?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"},
-    {"name": "Ferramentas", "slug": "ferramentas", "icon": "wrench", "image": "https://images.unsplash.com/photo-1645651964715-d200ce0939cc?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"},
-    {"name": "Pisos e Revestimentos", "slug": "pisos-revestimentos", "icon": "square", "image": "https://images.unsplash.com/photo-1706629503586-2731f65587ae?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"},
-    {"name": "Ferragens e Fixação", "slug": "ferragens", "icon": "bolt", "image": "https://images.unsplash.com/photo-1572981779307-38b8cabb2407?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"},
+    {"name": "Tribunais e MP", "slug": "tribunais", "icon": "scale", "image": IMG_LAW},
+    {"name": "Área Fiscal", "slug": "fiscal", "icon": "landmark", "image": IMG_GOV},
+    {"name": "Área Policial", "slug": "policial", "icon": "shield", "image": IMG_STUDY},
+    {"name": "Área Bancária", "slug": "bancaria", "icon": "banknote", "image": IMG_ONLINE},
+    {"name": "Administrativa", "slug": "administrativa", "icon": "briefcase", "image": IMG_NOTES},
+    {"name": "Nível Médio", "slug": "nivel-medio", "icon": "graduation-cap", "image": IMG_READ},
+    {"name": "Área Jurídica", "slug": "juridica", "icon": "gavel", "image": IMG_LAW2},
+    {"name": "Educação e Docência", "slug": "educacao", "icon": "book-open", "image": IMG_LIB},
 ]
 
-CEMENT = "https://images.unsplash.com/photo-1730627283177-f43b83c3850c?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"
-BRICK = "https://images.unsplash.com/photo-1771575522109-caee5ff9e8b3?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"
-PLUMB = "https://images.unsplash.com/photo-1545193329-4a052e14eb8f?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"
-ELEC = "https://images.unsplash.com/photo-1601462904263-f2fa0c851cb9?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"
-PAINT = "https://images.unsplash.com/photo-1643822308521-1da534425d82?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"
-TOOL = "https://images.unsplash.com/photo-1572981779307-38b8cabb2407?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"
-TOOL2 = "https://images.unsplash.com/photo-1606676539940-12768ce0e762?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"
-TILE = "https://images.unsplash.com/photo-1706629503586-2731f65587ae?crop=entropy&cs=srgb&fm=jpg&w=800&q=80&ixlib=rb-4.1.0"
-
 PRODUCTS = [
-    {"name": "Cimento CP-II 50kg", "category": "cimento-argamassa", "price": 39.90, "stock": 500, "unit": "saco", "brand": "Votoran", "featured": True, "images": [CEMENT], "description": "Saco de cimento Portland CP-II 50kg, ideal para concreto, argamassa e assentamento. Alta resistência e pega uniforme."},
-    {"name": "Argamassa AC-I 20kg", "category": "cimento-argamassa", "price": 18.50, "stock": 300, "unit": "saco", "brand": "Quartzolit", "images": [CEMENT], "description": "Argamassa colante interna AC-I para assentamento de cerâmica em ambientes internos."},
-    {"name": "Cal Hidratada 20kg", "category": "cimento-argamassa", "price": 15.90, "stock": 200, "unit": "saco", "brand": "Itaú", "images": [CEMENT], "description": "Cal hidratada CH-III para reboco e argamassa. Rende mais e deixa a massa fina."},
-    {"name": "Tijolo Cerâmico 8 furos", "category": "tijolos-blocos", "price": 1.20, "stock": 10000, "unit": "un", "brand": "Cerâmica São Luís", "featured": True, "images": [BRICK], "description": "Tijolo cerâmico 9x19x19cm, 8 furos. Leve, resistente e ótimo isolamento térmico."},
-    {"name": "Bloco de Concreto 14x19x39", "category": "tijolos-blocos", "price": 3.80, "stock": 5000, "unit": "un", "brand": "Bloco Forte", "images": [BRICK], "description": "Bloco estrutural de concreto para alvenaria. Alta resistência à compressão."},
-    {"name": "Tijolo Baiano 6 furos", "category": "tijolos-blocos", "price": 0.95, "stock": 8000, "unit": "un", "brand": "Cerâmica Norte", "images": [BRICK], "description": "Tijolo baiano de vedação 9x14x19cm, 6 furos. Econômico para paredes internas."},
-    {"name": "Tubo PVC Esgoto 100mm 6m", "category": "hidraulica", "price": 89.90, "stock": 150, "unit": "barra", "brand": "Tigre", "featured": True, "images": [PLUMB], "description": "Tubo de PVC para esgoto série normal 100mm, barra de 6 metros. Ponta e bolsa."},
-    {"name": "Joelho PVC 90° 25mm", "category": "hidraulica", "price": 2.30, "stock": 800, "unit": "un", "brand": "Tigre", "images": [PLUMB], "description": "Conexão joelho 90 graus soldável 25mm para água fria."},
-    {"name": "Registro de Gaveta 3/4\"", "category": "hidraulica", "price": 34.90, "stock": 120, "unit": "un", "brand": "Deca", "images": [PLUMB], "description": "Registro de gaveta bruto 3/4 polegada em bronze. Durável e resistente."},
-    {"name": "Caixa d'água 500L", "category": "hidraulica", "price": 289.00, "stock": 40, "unit": "un", "brand": "Fortlev", "images": [PLUMB], "description": "Caixa d'água de polietileno 500 litros com tampa. Proteção UV e atóxica."},
-    {"name": "Fio Flexível 2,5mm 100m", "category": "eletrica", "price": 179.90, "stock": 90, "unit": "rolo", "brand": "Sil", "featured": True, "images": [ELEC], "description": "Rolo de cabo flexível 2,5mm² 750V, 100 metros. Cobre eletrolítico, antichama."},
-    {"name": "Disjuntor Bipolar 40A", "category": "eletrica", "price": 42.00, "stock": 130, "unit": "un", "brand": "Steck", "images": [ELEC], "description": "Disjuntor termomagnético bipolar 40A padrão DIN. Proteção do circuito."},
-    {"name": "Tomada 2P+T 10A c/ Placa", "category": "eletrica", "price": 12.90, "stock": 400, "unit": "un", "brand": "Pial", "images": [ELEC], "description": "Conjunto tomada 2P+T 10A com placa 4x2. Padrão brasileiro."},
-    {"name": "Lâmpada LED 9W", "category": "eletrica", "price": 8.90, "stock": 600, "unit": "un", "brand": "Osram", "images": [ELEC], "description": "Lâmpada LED bulbo 9W 6500K luz branca. Economia de até 80%."},
-    {"name": "Tinta Acrílica Branca 18L", "category": "tintas", "price": 219.90, "stock": 80, "unit": "lata", "brand": "Suvinil", "featured": True, "images": [PAINT], "description": "Tinta acrílica premium fosca branca 18 litros. Alta cobertura, lavável."},
-    {"name": "Rolo de Lã 23cm + Bandeja", "category": "tintas", "price": 24.90, "stock": 250, "unit": "kit", "brand": "Atlas", "images": [PAINT], "description": "Kit rolo de lã anti-gota 23cm com cabo e bandeja plástica."},
-    {"name": "Massa Corrida PVA 25kg", "category": "tintas", "price": 45.90, "stock": 110, "unit": "balde", "brand": "Coral", "images": [PAINT], "description": "Massa corrida PVA para correção de paredes internas. Fácil lixamento."},
-    {"name": "Furadeira de Impacto 650W", "category": "ferramentas", "price": 249.00, "stock": 60, "unit": "un", "brand": "Bosch", "featured": True, "images": [TOOL, TOOL2], "description": "Furadeira de impacto 650W mandril 13mm. Perfura concreto, madeira e metal."},
-    {"name": "Betoneira 400L 2HP", "category": "ferramentas", "price": 2890.00, "stock": 12, "unit": "un", "brand": "Menegotti", "featured": True, "images": [TOOL2], "description": "Betoneira 400 litros motor 2HP monofásico. Ideal para obras médias."},
-    {"name": "Jogo de Chaves de Fenda 6 peças", "category": "ferramentas", "price": 39.90, "stock": 180, "unit": "kit", "brand": "Tramontina", "images": [TOOL], "description": "Kit com 6 chaves de fenda e Phillips com cabo ergonômico."},
-    {"name": "Trena 5m", "category": "ferramentas", "price": 19.90, "stock": 300, "unit": "un", "brand": "Starrett", "images": [TOOL], "description": "Trena de aço 5 metros com trava e clipe de cinto."},
-    {"name": "Porcelanato 60x60 Acetinado (cx 2,16m²)", "category": "pisos-revestimentos", "price": 89.90, "stock": 220, "unit": "caixa", "brand": "Portinari", "featured": True, "images": [TILE], "description": "Caixa de porcelanato acetinado 60x60cm, rende 2,16m². Alto padrão."},
-    {"name": "Piso Cerâmico 45x45 (cx 2m²)", "category": "pisos-revestimentos", "price": 39.90, "stock": 300, "unit": "caixa", "brand": "Cecrisa", "images": [TILE], "description": "Piso cerâmico esmaltado 45x45cm, rende 2m² por caixa. Uso residencial."},
-    {"name": "Rejunte Flexível 1kg", "category": "pisos-revestimentos", "price": 9.90, "stock": 400, "unit": "un", "brand": "Quartzolit", "images": [TILE], "description": "Rejunte acrílico flexível 1kg. Diversas cores, antimofo."},
-    {"name": "Prego 17x27 1kg", "category": "ferragens", "price": 14.90, "stock": 500, "unit": "kg", "brand": "Gerdau", "images": [TOOL], "description": "Prego com cabeça 17x27, pacote de 1kg. Aço polido."},
-    {"name": "Parafuso Bucha 6mm (100un)", "category": "ferragens", "price": 18.90, "stock": 260, "unit": "pacote", "brand": "Fischer", "featured": True, "images": [TOOL], "description": "Kit 100 parafusos com bucha 6mm para fixação em alvenaria."},
-    {"name": "Cadeado 40mm", "category": "ferragens", "price": 22.90, "stock": 140, "unit": "un", "brand": "Pado", "images": [TOOL], "description": "Cadeado de latão 40mm com 3 chaves. Alta segurança."},
-    {"name": "Dobradiça 3\" (par)", "category": "ferragens", "price": 11.90, "stock": 320, "unit": "par", "brand": "La Fonte", "images": [TOOL], "description": "Par de dobradiças 3 polegadas em aço zincado com parafusos."},
+    {"name": "Apostila Completa INSS - Técnico do Seguro Social", "category": "administrativa", "banca": "CEBRASPE", "type": "apostila", "price": 89.90, "pages": 980, "format": "PDF", "author": "Equipe TÔ APROVADO", "featured": True, "images": [IMG_STUDY], "description": "Apostila completa e atualizada para Técnico do Seguro Social do INSS. Conteúdo teórico + milhares de questões comentadas no estilo CEBRASPE (Certo/Errado). Inclui Direito Previdenciário, Ética, Informática, Português e Raciocínio Lógico."},
+    {"name": "Curso Completo Polícia Federal - Agente (Videoaulas)", "category": "policial", "banca": "CEBRASPE", "type": "curso", "price": 297.00, "pages": 0, "format": "Videoaulas + PDF", "author": "Prof. Marcelo Aguiar", "featured": True, "images": [IMG_ONLINE], "description": "Curso preparatório completo em videoaulas para Agente da Polícia Federal. Mais de 120 horas de aula, mapas mentais, PDF de apoio e simulados no padrão CEBRASPE."},
+    {"name": "Apostila Receita Federal - Auditor Fiscal", "category": "fiscal", "banca": "FGV", "type": "apostila", "price": 129.90, "pages": 1450, "format": "PDF", "author": "Equipe TÔ APROVADO", "featured": True, "images": [IMG_GOV], "description": "Material completo para Auditor-Fiscal da Receita Federal com foco na banca FGV. Direito Tributário, Contabilidade, Auditoria, Legislação Aduaneira e questões inéditas comentadas."},
+    {"name": "Apostila TRT - Técnico Judiciário (Área Administrativa)", "category": "tribunais", "banca": "FCC", "type": "apostila", "price": 79.90, "pages": 720, "format": "PDF", "author": "Equipe TÔ APROVADO", "featured": True, "images": [IMG_LAW], "description": "Apostila para Técnico Judiciário dos Tribunais Regionais do Trabalho no estilo FCC. Português, Raciocínio Lógico, Noções de Direito e questões da banca."},
+    {"name": "Curso Banco do Brasil - Escriturário (Agente Comercial)", "category": "bancaria", "banca": "CESGRANRIO", "type": "curso", "price": 197.00, "pages": 0, "format": "Videoaulas + PDF", "author": "Prof. Ana Beatriz", "featured": True, "images": [IMG_ONLINE], "description": "Preparatório completo para Escriturário do Banco do Brasil. Conhecimentos bancários, atendimento, vendas, matemática financeira e questões CESGRANRIO comentadas."},
+    {"name": "Apostila Caixa Econômica Federal - Técnico Bancário", "category": "bancaria", "banca": "CESGRANRIO", "type": "apostila", "price": 84.90, "pages": 640, "format": "PDF", "author": "Equipe TÔ APROVADO", "images": [IMG_READ], "description": "Material atualizado para Técnico Bancário Novo da CAIXA. Conhecimentos bancários, ética, LGPD, Português, matemática e informática no padrão CESGRANRIO."},
+    {"name": "Apostila TJ-SP - Escrevente Técnico Judiciário", "category": "tribunais", "banca": "VUNESP", "type": "apostila", "price": 74.90, "pages": 690, "format": "PDF", "author": "Equipe TÔ APROVADO", "images": [IMG_LAW2], "description": "Apostila para Escrevente Técnico Judiciário do TJ-SP com foco na VUNESP. Direito Penal, Processual, Constitucional, Português e legislação específica."},
+    {"name": "Apostila PRF - Policial Rodoviário Federal", "category": "policial", "banca": "CEBRASPE", "type": "apostila", "price": 99.90, "pages": 1100, "format": "PDF", "author": "Equipe TÔ APROVADO", "images": [IMG_STUDY], "description": "Preparação completa para Policial Rodoviário Federal. Legislação de trânsito, Direitos Humanos, Física aplicada, Português e questões CEBRASPE comentadas."},
+    {"name": "Combo Concurso dos Sonhos - Português + RLM + Informática", "category": "nivel-medio", "banca": "Diversas", "type": "combo", "price": 149.90, "pages": 1600, "format": "PDF + Videoaulas", "author": "Equipe TÔ APROVADO", "featured": True, "images": [IMG_NOTES], "description": "Combo com as 3 disciplinas mais cobradas em concursos: Língua Portuguesa, Raciocínio Lógico-Matemático e Informática. Teoria + mais de 3.000 questões de todas as bancas."},
+    {"name": "Apostila Professor - Concursos da Educação (SEDUC)", "category": "educacao", "banca": "Diversas", "type": "apostila", "price": 69.90, "pages": 580, "format": "PDF", "author": "Profa. Cláudia Reis", "images": [IMG_LIB], "description": "Material para concursos de Professor das redes estaduais e municipais. Conhecimentos pedagógicos, LDB, ECA, BNCC, legislação educacional e questões comentadas."},
+    {"name": "Apostila OAB 1ª Fase - Exame de Ordem", "category": "juridica", "banca": "FGV", "type": "apostila", "price": 119.90, "pages": 1300, "format": "PDF", "author": "Equipe TÔ APROVADO", "images": [IMG_LAW], "description": "Apostila completa para a 1ª Fase do Exame da OAB (FGV). Todas as disciplinas do edital com teoria objetiva, súmulas e questões dos últimos exames comentadas."},
+    {"name": "Curso Raciocínio Lógico do Zero (Videoaulas)", "category": "nivel-medio", "banca": "Diversas", "type": "curso", "price": 89.00, "pages": 0, "format": "Videoaulas + PDF", "author": "Prof. Rodrigo Lima", "images": [IMG_ONLINE], "description": "Aprenda Raciocínio Lógico-Matemático do zero para qualquer concurso. Aulas passo a passo, resolução de questões e macetes para ganhar tempo na prova."},
+]
+
+CONCURSOS = [
+    {"orgao": "INSS - Instituto Nacional do Seguro Social", "banca": "CEBRASPE", "cargo": "Técnico do Seguro Social", "vagas": "1.000", "salario": "R$ 5.905,79", "escolaridade": "Nível Médio", "uf": "Nacional", "status": "previsto", "inscricao_inicio": "", "inscricao_fim": "", "data_prova": "", "link": "", "description": "Concurso previsto para reposição do quadro de servidores. Cargo de nível médio com uma das melhores remunerações iniciais do país."},
+    {"orgao": "Polícia Federal", "banca": "CEBRASPE", "cargo": "Agente, Escrivão e Delegado", "vagas": "1.500", "salario": "até R$ 26.800,00", "escolaridade": "Nível Superior", "uf": "Nacional", "status": "previsto", "inscricao_inicio": "", "inscricao_fim": "", "data_prova": "", "link": "", "description": "Novo concurso previsto para diversas carreiras da Polícia Federal. Salários atrativos e ampla lotação nacional."},
+    {"orgao": "Receita Federal do Brasil", "banca": "FGV", "cargo": "Auditor-Fiscal e Analista-Tributário", "vagas": "460", "salario": "até R$ 22.921,71", "escolaridade": "Nível Superior", "uf": "Nacional", "status": "edital", "inscricao_inicio": "", "inscricao_fim": "", "data_prova": "", "link": "", "description": "Edital publicado para as carreiras de Auditor-Fiscal e Analista-Tributário da Receita Federal. Prepare-se com foco na banca FGV."},
+    {"orgao": "Tribunal Regional do Trabalho (TRT)", "banca": "FCC", "cargo": "Técnico e Analista Judiciário", "vagas": "Cadastro de reserva", "salario": "a partir de R$ 8.529,00", "escolaridade": "Médio e Superior", "uf": "Nacional", "status": "aberto", "inscricao_inicio": "", "inscricao_fim": "", "data_prova": "", "link": "", "description": "Inscrições abertas em diversas regiões dos Tribunais Regionais do Trabalho. Excelente oportunidade para carreira nos tribunais."},
+    {"orgao": "Banco do Brasil", "banca": "CESGRANRIO", "cargo": "Escriturário - Agente Comercial e de TI", "vagas": "6.000", "salario": "R$ 3.622,23 + benefícios", "escolaridade": "Nível Médio", "uf": "Nacional", "status": "aberto", "inscricao_inicio": "", "inscricao_fim": "", "data_prova": "", "link": "", "description": "Concurso do Banco do Brasil com milhares de vagas para nível médio em todo o Brasil. Jornada de 6h e ótimos benefícios."},
+    {"orgao": "Caixa Econômica Federal", "banca": "CESGRANRIO", "cargo": "Técnico Bancário Novo", "vagas": "4.000", "salario": "R$ 3.762,00 + benefícios", "escolaridade": "Nível Médio", "uf": "Nacional", "status": "previsto", "inscricao_inicio": "", "inscricao_fim": "", "data_prova": "", "link": "", "description": "Concurso previsto para o cargo de Técnico Bancário Novo da CAIXA, com vagas em todo o território nacional."},
+    {"orgao": "Tribunal de Justiça de São Paulo (TJ-SP)", "banca": "VUNESP", "cargo": "Escrevente Técnico Judiciário", "vagas": "400", "salario": "R$ 5.914,04", "escolaridade": "Nível Superior", "uf": "SP", "status": "edital", "inscricao_inicio": "", "inscricao_fim": "", "data_prova": "", "link": "", "description": "Edital publicado para Escrevente Técnico Judiciário do maior tribunal da América Latina. Banca VUNESP."},
+    {"orgao": "Polícia Rodoviária Federal (PRF)", "banca": "CEBRASPE", "cargo": "Policial Rodoviário Federal", "vagas": "750", "salario": "R$ 10.357,68", "escolaridade": "Nível Superior", "uf": "Nacional", "status": "previsto", "inscricao_inicio": "", "inscricao_fim": "", "data_prova": "", "link": "", "description": "Concurso previsto para Policial Rodoviário Federal. Carreira valorizada com atuação em todo o país."},
+]
+
+NOTICIAS = [
+    {"title": "INSS confirma novo concurso com 1.000 vagas para nível médio", "category": "Concursos Federais", "image": IMG_GOV, "summary": "O Instituto Nacional do Seguro Social sinalizou a autorização de um novo certame para o cargo de Técnico do Seguro Social.", "content": "O Instituto Nacional do Seguro Social (INSS) segue entre os concursos mais aguardados do país. O cargo de Técnico do Seguro Social exige nível médio e oferece uma das melhores remunerações iniciais para esse nível de escolaridade.\n\nEnquanto o edital não sai, a orientação dos aprovados é começar os estudos pelo edital anterior, que costuma sofrer poucas alterações. As disciplinas mais importantes são Direito Previdenciário, Língua Portuguesa, Raciocínio Lógico e Ética no Serviço Público.\n\nNa TÔ APROVADO você encontra a apostila completa e atualizada para largar na frente."},
+    {"title": "Receita Federal: edital publicado para Auditor e Analista", "category": "Área Fiscal", "image": IMG_LAW, "summary": "Foram autorizadas centenas de vagas para as carreiras de Auditor-Fiscal e Analista-Tributário, com banca FGV.", "content": "A Receita Federal do Brasil é o sonho de consumo de muitos concurseiros da área fiscal. Com salários que ultrapassam os R$ 22 mil, as carreiras de Auditor-Fiscal e Analista-Tributário atraem milhares de candidatos.\n\nA banca responsável é a FGV, conhecida por cobrar questões de alta complexidade em Direito Tributário, Contabilidade e Auditoria. O planejamento de estudos deve priorizar essas disciplinas de maior peso.\n\nConfira o material específico da TÔ APROVADO com foco no estilo FGV."},
+    {"title": "Banco do Brasil abre inscrições para 6.000 vagas de Escriturário", "category": "Área Bancária", "image": IMG_ONLINE, "summary": "Concurso do BB oferece milhares de vagas para nível médio em todo o país, com banca CESGRANRIO.", "content": "O concurso do Banco do Brasil é uma das maiores oportunidades para quem busca uma carreira estável na área bancária. Com jornada de 6 horas e ótimos benefícios, o cargo de Escriturário exige apenas o nível médio.\n\nA banca CESGRANRIO cobra fortemente Conhecimentos Bancários, Atendimento, Vendas e Matemática Financeira, além das disciplinas básicas de Português e Informática.\n\nComece agora com o curso preparatório completo da TÔ APROVADO."},
+    {"title": "Como escolher a banca certa para focar seus estudos", "category": "Dicas de Estudo", "image": IMG_NOTES, "summary": "Entender o estilo de cada banca (CEBRASPE, FGV, FCC, VUNESP) é decisivo para a sua aprovação.", "content": "Cada banca examinadora tem um estilo próprio de cobrar o conteúdo. Conhecer esse estilo é tão importante quanto dominar a matéria.\n\nA CEBRASPE (antigo CESPE) é famosa pelo modelo Certo/Errado, em que um erro anula um acerto. A FGV cobra questões longas e interpretativas. A FCC é conhecida pela literalidade da lei, e a VUNESP costuma valorizar a interpretação de texto.\n\nNa seção Bancas do nosso site você encontra o perfil detalhado de cada uma delas. Estude direcionado e aumente suas chances!"},
 ]
 
 async def seed():
-    # admin
     admin_email = os.environ["ADMIN_EMAIL"].lower()
     admin_password = os.environ["ADMIN_PASSWORD"]
-    # remove any previous admin(s) that don't match the current ADMIN_EMAIL
     await db.users.delete_many({"role": "admin", "email": {"$ne": admin_email}})
     existing = await db.users.find_one({"email": admin_email})
     if not existing:
@@ -563,17 +647,28 @@ async def seed():
     elif not verify_password(admin_password, existing["password_hash"]):
         await db.users.update_one({"email": admin_email},
                                   {"$set": {"password_hash": hash_password(admin_password)}})
-    # categories
     if await db.categories.count_documents({}) == 0:
         for c in CATEGORIES:
             await db.categories.insert_one({"id": str(uuid.uuid4()), **c})
-    # products
     if await db.products.count_documents({}) == 0:
         for p in PRODUCTS:
             doc = {"id": str(uuid.uuid4()), "slug": slugify(p["name"]), "active": True,
-                   "sku": "", "featured": p.get("featured", False),
+                   "banca": p.get("banca", ""), "type": p.get("type", "apostila"),
+                   "pages": p.get("pages", 0), "format": p.get("format", "PDF"),
+                   "author": p.get("author", ""), "download_url": "",
+                   "featured": p.get("featured", False),
                    "created_at": datetime.now(timezone.utc).isoformat(), **p}
             await db.products.insert_one(doc)
+    if await db.concursos.count_documents({}) == 0:
+        for i, c in enumerate(CONCURSOS):
+            doc = {"id": str(uuid.uuid4()), "active": True,
+                   "created_at": (datetime.now(timezone.utc) - timedelta(minutes=i)).isoformat(), **c}
+            await db.concursos.insert_one(doc)
+    if await db.noticias.count_documents({}) == 0:
+        for i, n in enumerate(NOTICIAS):
+            doc = {"id": str(uuid.uuid4()), "slug": slugify(n["title"]), "active": True,
+                   "created_at": (datetime.now(timezone.utc) - timedelta(minutes=i)).isoformat(), **n}
+            await db.noticias.insert_one(doc)
 
 @app.on_event("startup")
 async def startup():

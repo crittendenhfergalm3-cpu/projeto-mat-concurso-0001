@@ -1,101 +1,116 @@
-# São José Material de Construção — E-commerce
+# TÔ APROVADO Concursos Públicos — Plataforma de Estudos
 
-Loja online de materiais de construção (React + FastAPI + MongoDB), com catálogo,
-carrinho, checkout (Stripe + WhatsApp), cálculo de frete por CEP, páginas
-institucionais e painel administrativo protegido.
+Plataforma web de estudos e **venda de conteúdo digital** (apostilas em PDF e cursos em videoaulas)
+para **concursos públicos do Brasil**. Inclui catálogo por área e banca, carrinho, checkout
+(Stripe + WhatsApp), seções de **Concursos**, **Notícias** e **Bancas**, páginas institucionais
+(compatíveis com Google Ads) e painel administrativo protegido.
 
----
+- **Frontend:** React + Tailwind + Shadcn UI
+- **Backend:** FastAPI + MongoDB (Motor)
+- **Pagamentos:** Stripe (cartão) e WhatsApp
+- **Entrega:** conteúdo 100% digital (link/e-mail após pagamento) — sem frete
 
-## 🧱 Stack
-
-- **Frontend:** React (Create React App) + Tailwind + Shadcn UI
-- **Backend:** FastAPI (Python)
-- **Banco:** MongoDB
-- **Pagamento:** Stripe (checkout online) + botão WhatsApp
-- **E-mail:** confirmação de pedido (Resend gerenciado na Emergent / SMTP no seu VPS)
-- **Imagens de produto:** Object Storage na Emergent / **disco local (fallback automático)** no seu VPS
+> Empresa: **TÔ APROVADO CURSOS PARA CONCURSOS PUBLICOS LTDA - ME** — CNPJ 37.380.166/0001-90.
 
 ---
 
-## 📁 Estrutura
+## 1. Estrutura do projeto
 
 ```
-/backend           API FastAPI
-  server.py        toda a API (rotas /api/*)
-  requirements.txt        deps da plataforma Emergent (NÃO usar no VPS)
-  requirements-vps.txt    deps limpas para o SEU VPS  ✅
-  .env.example            modelo de variáveis de ambiente
-  uploads/                imagens enviadas pelo admin (criado em runtime, não versionar)
-/frontend          App React
-  src/             código-fonte
-  .env.example     modelo (REACT_APP_BACKEND_URL)
+/
+├── backend/
+│   ├── server.py            # API FastAPI (produtos, concursos, notícias, checkout, admin)
+│   ├── requirements.txt      # dependências (ambiente Emergent)
+│   ├── requirements-vps.txt  # dependências LIMPAS para o seu VPS  <-- use esta
+│   ├── .env.example          # modelo de variáveis de ambiente
+│   └── uploads/              # imagens enviadas pelo admin (fallback em disco)
+└── frontend/
+    ├── src/                  # código React
+    ├── public/
+    ├── package.json
+    └── .env.example          # modelo (REACT_APP_BACKEND_URL)
 ```
 
-Todas as rotas da API têm o prefixo **`/api`**. O frontend sempre usa
-`REACT_APP_BACKEND_URL` para chamar a API.
-
 ---
 
-## ⚠️ Antes de subir pro GitHub (importante)
+## 2. Rodando localmente
 
-1. **Nunca** faça commit dos arquivos `.env` (contêm chaves secretas). Eles já estão
-   no `.gitignore`. Suba apenas os `.env.example`.
-2. Se você já commitou um `.env` por engano, **troque todas as chaves** (JWT, Stripe, etc.).
-3. A pasta `backend/uploads/` (imagens enviadas) e `node_modules/` também são ignoradas.
+### Pré-requisitos
+- Node.js 18+ e Yarn
+- Python 3.11+
+- MongoDB 6+ (local ou Atlas)
 
----
-
-## 🚀 Rodando localmente (desenvolvimento)
-
-**Pré-requisitos:** Python 3.11+, Node 18+, Yarn, MongoDB rodando.
-
+### Backend
 ```bash
-# 1) Backend
 cd backend
 python -m venv venv && source venv/bin/activate
 pip install -r requirements-vps.txt
-cp .env.example .env      # edite com seus valores
+cp .env.example .env          # edite com seus valores
 uvicorn server:app --host 0.0.0.0 --port 8001 --reload
+```
 
-# 2) Frontend (em outro terminal)
+### Frontend
+```bash
 cd frontend
 yarn install
-cp .env.example .env      # REACT_APP_BACKEND_URL=http://localhost:8001
+cp .env.example .env          # aponte REACT_APP_BACKEND_URL para o backend
 yarn start
 ```
 
-Acesse `http://localhost:3000`. O painel admin fica em `/admin/login`
-(use o `ADMIN_EMAIL` / `ADMIN_PASSWORD` do seu `.env`). Categorias e produtos de
-exemplo são criados automaticamente no primeiro start (seed).
+O seed é executado automaticamente no primeiro start do backend (áreas, materiais de exemplo,
+concursos, notícias e o usuário admin definido no `.env`).
 
 ---
 
-## 🖥️ Deploy no seu VPS (produção)
+## 3. Variáveis de ambiente
 
-Exemplo com Ubuntu + Nginx + systemd.
+### backend/.env
+| Variável | Descrição |
+|---|---|
+| `MONGO_URL` | String de conexão do MongoDB |
+| `DB_NAME` | Nome do banco (ex.: `toaprovado`) |
+| `CORS_ORIGINS` | Domínios liberados (separe por vírgula) |
+| `JWT_SECRET` | Segredo do JWT (gere aleatório) |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Login do painel `/admin` |
+| `OWNER_EMAIL` | E-mail que recebe cópia dos pedidos |
+| `STRIPE_SECRET_KEY` / `STRIPE_PUBLISHABLE_KEY` | Chaves da sua conta Stripe |
+| `STRIPE_WEBHOOK_SECRET` | Segredo do webhook Stripe |
+| `EMAIL_FROM_NAME` | Nome do remetente dos e-mails |
 
-### 1. MongoDB
-Instale o MongoDB (ou use um Atlas). Anote a `MONGO_URL`.
-
-### 2. Backend (FastAPI com Gunicorn)
-
+Gere um `JWT_SECRET`:
 ```bash
-cd /var/www/saojose/backend
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements-vps.txt
-cp .env.example .env    # preencha MONGO_URL, JWT_SECRET, ADMIN_*, STRIPE_*, CORS_ORIGINS
+python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-Crie o serviço systemd `/etc/systemd/system/saojose-api.service`:
+### frontend/.env
+```
+REACT_APP_BACKEND_URL=https://seudominio.com.br
+```
 
+> ⚠️ Nunca versione os arquivos `.env` reais — eles já estão no `.gitignore`.
+
+---
+
+## 4. Deploy no seu VPS (Ubuntu + Nginx)
+
+### 4.1 Backend (systemd + gunicorn)
+```bash
+cd /var/www/toaprovado/backend
+python -m venv venv && source venv/bin/activate
+pip install -r requirements-vps.txt
+```
+
+Crie o serviço `/etc/systemd/system/toaprovado-api.service`:
 ```ini
 [Unit]
-Description=Sao Jose API
+Description=TO APROVADO API
 After=network.target
 
 [Service]
-WorkingDirectory=/var/www/saojose/backend
-ExecStart=/var/www/saojose/backend/venv/bin/gunicorn server:app \
+User=www-data
+WorkingDirectory=/var/www/toaprovado/backend
+EnvironmentFile=/var/www/toaprovado/backend/.env
+ExecStart=/var/www/toaprovado/backend/venv/bin/gunicorn server:app \
   -k uvicorn.workers.UvicornWorker -b 127.0.0.1:8001 --workers 2
 Restart=always
 
@@ -104,27 +119,24 @@ WantedBy=multi-user.target
 ```
 
 ```bash
-sudo systemctl enable --now saojose-api
+sudo systemctl enable --now toaprovado-api
 ```
 
-### 3. Frontend (build estático)
-
+### 4.2 Frontend (build estático)
 ```bash
-cd /var/www/saojose/frontend
-# .env com REACT_APP_BACKEND_URL=https://seudominio.com.br
-yarn install && yarn build      # gera a pasta build/
+cd /var/www/toaprovado/frontend
+yarn install
+yarn build          # gera a pasta build/
 ```
 
-### 4. Nginx (serve o frontend e faz proxy do /api)
-
-`/etc/nginx/sites-available/saojose`:
-
+### 4.3 Nginx
+`/etc/nginx/sites-available/toaprovado`:
 ```nginx
 server {
     listen 80;
     server_name seudominio.com.br www.seudominio.com.br;
 
-    root /var/www/saojose/frontend/build;
+    root /var/www/toaprovado/frontend/build;
     index index.html;
 
     # API -> backend
@@ -136,7 +148,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # SPA (React Router) -> sempre index.html
+    # SPA (React Router)
     location / {
         try_files $uri /index.html;
     }
@@ -144,12 +156,11 @@ server {
 ```
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/saojose /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/toaprovado /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-### 5. SSL grátis (HTTPS) — obrigatório para Google Ads
-
+### 4.4 HTTPS (Let's Encrypt)
 ```bash
 sudo apt install certbot python3-certbot-nginx
 sudo certbot --nginx -d seudominio.com.br -d www.seudominio.com.br
@@ -157,32 +168,35 @@ sudo certbot --nginx -d seudominio.com.br -d www.seudominio.com.br
 
 ---
 
-## 🔌 Migrando as integrações Emergent → suas próprias contas
+## 5. Stripe
 
-Estas 3 partes usam serviços gerenciados pela Emergent e precisam da sua conta no VPS:
-
-| Recurso | Na Emergent | No seu VPS |
-|---|---|---|
-| **Pagamento (Stripe)** | Sandbox reivindicável | Use as chaves da **sua** conta Stripe em `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`. Configure o webhook em `https://seudominio.com.br/api/stripe/webhook`. |
-| **Imagens de produto** | Object Storage gerenciado | **Automático:** se o storage da Emergent não estiver disponível, o upload cai em `backend/uploads/` (disco local) e é servido por `/api/files/local/...`. Nada a fazer. |
-| **E-mail de confirmação** | Resend gerenciado (`EMERGENT_EMAIL_KEY`) | Crie conta no [Resend](https://resend.com) e ajuste a função `send_order_email` em `server.py` para usar sua API key, **ou** um SMTP. Sem chave, o pedido é criado normalmente, só não envia o e-mail. |
-
-> **Nota:** o restante do site (catálogo, carrinho, checkout, frete, admin, páginas
-> institucionais) funciona 100% no VPS sem nenhum serviço da Emergent.
+1. Crie sua conta em https://dashboard.stripe.com.
+2. Pegue as chaves em **Developers → API keys** e preencha o `.env`.
+3. Configure o webhook apontando para `https://seudominio.com.br/api/stripe/webhook`
+   e copie o `whsec_...` para `STRIPE_WEBHOOK_SECRET`.
 
 ---
 
-## 🔐 Painel administrativo
+## 6. Painel administrativo
 
-- URL: `/admin/login`
-- Credenciais definidas por `ADMIN_EMAIL` / `ADMIN_PASSWORD` no `.env`.
-- Permite cadastrar/editar produtos (com upload de imagem) e ver pedidos.
+Acesse `/admin/login` com as credenciais definidas em `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+No painel você gerencia **Materiais** (apostilas/cursos), **Concursos**, **Notícias** e **Pedidos**,
+além de enviar imagens de capa.
 
 ---
 
-## ✅ Checklist Google Ads (conformidade)
+## 7. Entrega dos materiais (conteúdo digital)
 
-O site já inclui: Sobre, Contato (tel/e-mail/endereço), CNPJ + Razão Social no rodapé,
-Política de Privacidade, Termos, Trocas e Devoluções, Política de Frete, selos de
-segurança e páginas de destino coerentes. Para aprovar a campanha, faltam apenas os
-passos de infra/conta: **domínio próprio + SSL + verificação de identidade do anunciante**.
+Cada material possui o campo **Link de download/acesso** (`download_url`) no painel admin.
+Após o pagamento confirmado, o link é exibido na tela de sucesso e enviado por e-mail ao cliente.
+Recomenda-se hospedar os PDFs/videoaulas em um armazenamento próprio (ex.: S3, Google Drive
+com link, ou pasta protegida) e colar o link no material correspondente.
+
+---
+
+## 8. Observações de segurança
+
+- Mantenha os `.env` fora do Git.
+- Use HTTPS em produção (Certbot).
+- Troque a senha do admin e o `JWT_SECRET` antes de ir ao ar.
+- As imagens enviadas pelo admin caem em `backend/uploads/` (fallback local) — faça backup dessa pasta.

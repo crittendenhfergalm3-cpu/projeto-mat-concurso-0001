@@ -1,146 +1,39 @@
 {
-  "project_context": {
-    "app_name": "São José Material de Construção",
-    "description": "Legitimate e-commerce for construction materials, designed to pass Google Ads validation.",
-    "target_audience": "Contractors, masons, and individuals doing home renovations.",
-    "theme": "light",
-    "app_type": "e-commerce"
+  "meta": {
+    "app_name": "TÔ APROVADO Concursos Públicos",
+    "description": "Plataforma de estudos e venda de conteúdo digital (apostilas e cursos) para concursos públicos do Brasil. Construída para conformidade com Google Ads.",
+    "app_type": "hybrid_fullstack",
+    "language": "pt-BR"
   },
-  "typography": {
-    "headings": {
-      "font_family": "Outfit",
-      "weights": ["600", "700", "800"],
-      "usage": "Clean, structured, reliable headers. Do not use generic sans for headings."
-    },
-    "body": {
-      "font_family": "IBM Plex Sans",
-      "weights": ["400", "500", "600"],
-      "usage": "Highly readable, technical look for product specs and descriptions."
-    }
+  "brand": {
+    "personality": "Confiável, motivador, profissional e focado em aprovação.",
+    "logo": "Selo (badge) em gradiente verde esmeralda com anel de 'selo de aprovação' pontilhado e um check dourado. Vetorial (SVG), sem imagem externa."
   },
   "colors": {
-    "primary": {
-      "name": "Construction Orange",
-      "value": "#EA580C",
-      "tailwind": "orange-600"
-    },
-    "secondary": {
-      "name": "Safety Yellow",
-      "value": "#EAB308",
-      "tailwind": "yellow-500"
-    },
-    "background": {
-      "name": "Off White",
-      "value": "#F9FAFB",
-      "tailwind": "gray-50"
-    },
-    "surface": {
-      "name": "White",
-      "value": "#FFFFFF",
-      "tailwind": "white"
-    },
-    "text": {
-      "name": "Charcoal",
-      "value": "#111827",
-      "tailwind": "gray-900"
-    },
-    "border": {
-      "name": "Light Gray",
-      "value": "#E5E7EB",
-      "tailwind": "gray-200"
-    },
-    "rules": [
-      "Use #EA580C for primary CTAs like 'Adicionar ao Carrinho' or 'Comprar pelo WhatsApp'.",
-      "Maintain high contrast. Never use pure #000000 or #808080.",
-      "Footer should use a dark theme (bg-gray-900 text-gray-300) to anchor the site and heavily contrast the main content."
-    ]
+    "primary": "Emerald green (#047857 / #059669) — representa aprovação/sucesso",
+    "accent": "Gold/Amber (#F59E0B / #FACC15) — medalha/destaque de aprovação",
+    "dark": "Slate/Navy (#0f172a / slate-900) — seções escuras institucionais",
+    "surface": "Branco e slate-50",
+    "notes": "Verde como cor dominante, dourado como acento pontual, navy para profundidade nas seções escuras. Evitar laranja (marca antiga)."
   },
-  "visual_enhancers": {
-    "surfaces": "Use flat, solid backgrounds with subtle 1px borders (border-gray-200) instead of heavy glassmorphism for product cards. Clinical, organized look.",
-    "shadows": "Minimal. Use shadow-sm for cards, shadow-lg for floating elements like the cart drawer.",
-    "borders": "Square or slightly rounded (rounded-md max 6px) to match the industrial construction feel."
+  "typography": {
+    "display": "Fonte display para títulos (headings fortes)",
+    "body": "Sans-serif legível para corpo",
+    "hierarchy": "H1 text-4xl/5xl/6xl, H2 text-lg, body text-sm/base"
+  },
+  "layout": {
+    "style": "Limpo, com bastante respiro, cards com hover sutil (translate + shadow).",
+    "borders": "rounded-md/lg (6-12px).",
+    "footer": "Rodapé escuro (slate-900) que DEVE exibir: Razão Social (TÔ APROVADO CURSOS PARA CONCURSOS PUBLICOS LTDA - ME), CNPJ 37.380.166/0001-90, endereço completo (São Paulo/SP), telefone/WhatsApp, e-mail e links para todas as páginas legais (Privacidade, Termos, Reembolso, Entrega) — para passar no Google Ads.",
+    "home_sections": "Hero, faixa de diferenciais, áreas de concurso, materiais em destaque, concursos em foco, últimas notícias, faixa de confiança."
   },
   "components": {
-    "buttons": "Rectangular with slight rounded corners (rounded-md). High contrast text. Use robust padding (py-3 px-6). CTA button must be orange-600.",
-    "inputs": "Shadcn default inputs with gray-200 border. Always show clear labels. Focus ring should be orange-500.",
-    "cards": "Cardless or flat with subtle 1px border. No heavy drop shadows. Perfect for product listings.",
-    "navigation": "Sticky white header (bg-white/95 backdrop-blur-md) with search bar prominently placed in the center.",
-    "footer": "Massive dark footer. Must include CNPJ, Razão Social, full address (São Luís-MA), phone, email, and explicit links to all legal pages (Privacy, Terms, Shipping, Returns) to pass Google Ads.",
-    "cart": "Slide-in drawer from the right (Shadcn Sheet). Include a mock shipping calculator (CEP) inside the cart.",
-    "badges": "Display security badges (SSL lock icons, 'Compra Segura', Stripe logos) near the checkout buttons and in the footer."
+    "buttons": "Verde esmeralda sólido para ações primárias; contorno para secundárias; WhatsApp em #25D366.",
+    "badges": "Status de concurso (Abertas/Edital/Previsto/Encerrado) com cores distintas; tipo de material (Apostila/Curso/Combo)."
   },
-  "grids": {
-    "bento_marketing": "Use asymmetrical bento grid for the homepage category highlights (e.g., Cimento, Ferramentas, Hidráulica).",
-    "product_grid": "Dense grid for catalog: grid-cols-2 (mobile) up to grid-cols-4 or 5 (desktop).",
-    "admin_dashboard": "Tight grid for analytics and tables, utilizing full screen width."
-  },
-  "layouts": {
-    "mobile_first": "Mobile checkout must be seamless. Stick add-to-cart bar to the bottom on mobile product pages.",
-    "product_page": "Split layout on desktop: sticky product images on left, scrollable info/buy box on right. Display shipping cost calculator explicitly.",
-    "spacing": "Generous spacing between sections (py-16 to py-24). Tight spacing inside product cards (p-4)."
-  },
-  "motion": {
-    "interactions": "Hover states on all product cards (subtle -translate-y-1).",
-    "transitions": "Use specific properties: transition-transform duration-200, transition-colors.",
-    "rules": "No excessive animations that slow down shopping. Fast, responsive feel."
-  },
-  "accessibility": {
-    "contrast": "Text must pass WCAG AA against background. White text on Orange CTA is mandatory.",
-    "touch_targets": "Minimum 44x44px for mobile filters, buttons, and nav links.",
-    "data_testid": "All interactive and key informational elements MUST include a `data-testid` attribute."
-  },
-  "media": {
-    "icons": "lucide-react for all generic icons. react-icons for brand logos (WhatsApp, Stripe).",
-    "image_urls": [
-      {
-        "url": "https://images.unsplash.com/photo-1774273177331-4c19e9912071?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODh8MHwxfHNlYXJjaHwyfHxoYXJkd2FyZSUyMHN0b3JlJTIwaW50ZXJpb3J8ZW58MHx8fHwxNzg2NDE3NDY4fDA&ixlib=rb-4.1.0&q=85",
-        "category": "hero",
-        "description": "Hardware store aisle, useful for the main hero section to establish context."
-      },
-      {
-        "url": "https://images.pexels.com/photos/36003985/pexels-photo-36003985.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "category": "category_materials",
-        "description": "Stacks of construction materials, good for 'Basic Materials' category card."
-      },
-      {
-        "url": "https://images.unsplash.com/photo-1659456553707-14712bb27032?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MTJ8MHwxfHNlYXJjaHwzfHxoYXJkd2FyZSUyMHRvb2xzJTIwaXNvbGF0ZWR8ZW58MHx8fHwxNzg2NDE3NDY5fDA&ixlib=rb-4.1.0&q=85",
-        "category": "category_tools",
-        "description": "Tools laid out, good for 'Tools' category card."
-      },
-      {
-        "url": "https://images.pexels.com/photos/12340557/pexels-photo-12340557.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "category": "category_plumbing",
-        "description": "Plumbing fixtures, good for 'Hydraulics/Plumbing' category."
-      }
-    ]
-  },
-  "instructions_to_main_agent": [
-    "Build a robust React frontend with Shadcn UI and Tailwind CSS.",
-    "Import 'Outfit' and 'IBM Plex Sans' from Google Fonts in your main CSS or HTML file.",
-    "Implement the institutional pages required by Google Ads: /sobre, /contato, /politica-de-privacidade, /termos, /trocas-e-devolucoes, /frete.",
-    "Footer MUST clearly display: São José Material de Construção, a mock CNPJ (e.g., 00.000.000/0001-00), Full Address in São Luís-MA, Phone/WhatsApp, and Email.",
-    "Implement a slide-in Cart drawer (use Shadcn Sheet component).",
-    "In the Product Page, add a CEP shipping calculator input and a WhatsApp purchase button alongside standard Add to Cart.",
-    "Provide a simple Admin layout (/admin) protected by a mock login to manage products and view orders.",
-    "DO NOT use 'Inter' for headings. Use 'Outfit'.",
-    "Add security badges visually (lock icons, 'Pagamento Seguro', Stripe/WhatsApp logos using lucide-react/react-icons).",
-    "Adhere strictly to the requested orange/gray/white palette.",
-    "Apply `data-testid` to all functional buttons, links, and forms."
-  ],
-  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
-    "You tend to converge toward generic, 'on distribution' outputs. Avoid this: make creative, distinctive frontends.",
-    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
-    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
-    "Create depth through layered design elements with z-index hierarchy.",
-    "You MUST NOT apply universal transition (e.g., transition: all). Always add transitions for specific interactive elements.",
-    "You MUST NOT center align the app container. Do not add `.App { text-align: center; }`.",
-    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style.",
-    "NEVER use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯 etc for icons.",
-    "Every interaction needs micro-animations - hover states, transitions, entrance animations.",
-    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
-    "Prioritize using pre-existing components from src/components/ui when applicable.",
-    "Use `sonner` for toasts.",
-    "DO NOT use complete `transparent` background in header, overlays, or any surface that has content under it.",
-    "All interactive and key informational elements MUST include a `data-testid` attribute to facilitate robust automated testing."
+  "compliance_google_ads": [
+    "Exibir dados reais da empresa (CNPJ, razão social, endereço, contato) no rodapé e páginas institucionais.",
+    "Páginas obrigatórias: Sobre, Contato, Política de Privacidade (LGPD), Termos de Uso, Reembolso/Arrependimento (CDC 7 dias), Entrega dos Materiais.",
+    "Checkout seguro (Stripe, SSL) e informação clara de produto digital."
   ]
 }

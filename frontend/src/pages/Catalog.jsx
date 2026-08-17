@@ -11,6 +11,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const TYPES = [
+  { value: "all", label: "Todos os tipos" },
+  { value: "apostila", label: "Apostilas" },
+  { value: "curso", label: "Cursos" },
+  { value: "combo", label: "Combos" },
+];
+
 const Catalog = () => {
   const { slug } = useParams();
   const [searchParams] = useSearchParams();
@@ -19,6 +26,7 @@ const Catalog = () => {
   const [products, setProducts] = useState([]);
   const [cats, setCats] = useState([]);
   const [sort, setSort] = useState("recent");
+  const [type, setType] = useState("all");
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
 
@@ -31,6 +39,7 @@ const Catalog = () => {
     const params = { sort, limit: 48 };
     if (slug) params.category = slug;
     if (search) params.search = search;
+    if (type !== "all") params.type = type;
     api
       .get("/products", { params })
       .then((r) => {
@@ -38,28 +47,36 @@ const Catalog = () => {
         setTotal(r.data.total);
       })
       .finally(() => setLoading(false));
-  }, [slug, search, sort]);
+  }, [slug, search, sort, type]);
 
   const currentCat = cats.find((c) => c.slug === slug);
   const title = search
     ? `Resultados para "${search}"`
     : currentCat
     ? currentCat.name
-    : "Todos os produtos";
+    : "Apostilas & Cursos";
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <div className="mb-6 flex flex-col gap-4 border-b border-gray-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-gray-900 md:text-3xl" data-testid="catalog-title">
+          <h1 className="font-display text-2xl font-bold text-slate-900 md:text-3xl" data-testid="catalog-title">
             {title}
           </h1>
-          <p className="mt-1 text-sm text-gray-500" data-testid="catalog-count">{total} produto(s)</p>
+          <p className="mt-1 text-sm text-slate-500" data-testid="catalog-count">{total} material(is) disponível(is)</p>
         </div>
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal className="h-4 w-4 text-gray-500" />
+        <div className="flex flex-wrap items-center gap-2">
+          <SlidersHorizontal className="h-4 w-4 text-slate-500" />
+          <Select value={type} onValueChange={setType}>
+            <SelectTrigger className="w-40" data-testid="type-select">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
           <Select value={sort} onValueChange={setSort}>
-            <SelectTrigger className="w-48" data-testid="sort-select">
+            <SelectTrigger className="w-44" data-testid="sort-select">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -73,13 +90,13 @@ const Catalog = () => {
       </div>
 
       {loading ? (
-        <div className="py-20 text-center text-muted-foreground">Carregando produtos...</div>
+        <div className="py-20 text-center text-muted-foreground">Carregando materiais...</div>
       ) : products.length === 0 ? (
         <div className="py-20 text-center text-muted-foreground" data-testid="no-products">
-          Nenhum produto encontrado.
+          Nenhum material encontrado.
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {products.map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}

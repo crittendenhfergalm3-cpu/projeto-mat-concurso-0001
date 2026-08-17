@@ -31,12 +31,12 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4">
       <div className="w-full max-w-sm rounded-lg bg-white p-8 shadow-xl">
         <div className="mb-6 flex flex-col items-center">
           <LogoMark className="h-14 w-14" />
-          <h1 className="mt-4 font-display text-xl font-bold text-gray-900">Painel Administrativo</h1>
-          <p className="text-sm text-gray-500">São José Material de Construção</p>
+          <h1 className="mt-4 font-display text-xl font-bold text-slate-900">Painel Administrativo</h1>
+          <p className="text-sm text-slate-500">TÔ APROVADO Concursos Públicos</p>
         </div>
         <form onSubmit={submit} className="space-y-4">
           <div>
@@ -47,7 +47,7 @@ const AdminLogin = () => {
             <Label htmlFor="password">Senha</Label>
             <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required data-testid="admin-password" />
           </div>
-          <Button type="submit" disabled={loading} className="w-full gap-2 bg-orange-600 py-6 hover:bg-orange-700" data-testid="admin-login-button">
+          <Button type="submit" disabled={loading} className="w-full gap-2 bg-emerald-600 py-6 hover:bg-emerald-700" data-testid="admin-login-button">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
             Entrar
           </Button>

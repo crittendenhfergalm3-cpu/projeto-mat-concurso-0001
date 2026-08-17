@@ -7,6 +7,10 @@ import Layout from "@/components/Layout";
 import Home from "@/pages/Home";
 import Catalog from "@/pages/Catalog";
 import ProductDetail from "@/pages/ProductDetail";
+import Concursos from "@/pages/Concursos";
+import Noticias from "@/pages/Noticias";
+import NoticiaDetail from "@/pages/NoticiaDetail";
+import Bancas from "@/pages/Bancas";
 import Checkout from "@/pages/Checkout";
 import PaymentSuccess from "@/pages/PaymentSuccess";
 import PaymentCancel from "@/pages/PaymentCancel";
@@ -14,12 +18,14 @@ import Sobre from "@/pages/Sobre";
 import Contato from "@/pages/Contato";
 import Privacidade from "@/pages/Privacidade";
 import Termos from "@/pages/Termos";
-import Trocas from "@/pages/Trocas";
-import Frete from "@/pages/Frete";
+import Reembolso from "@/pages/Trocas";
+import Entrega from "@/pages/Frete";
 import AdminLogin from "@/pages/admin/AdminLogin";
 import AdminLayout from "@/pages/admin/AdminLayout";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminProducts from "@/pages/admin/AdminProducts";
+import AdminConcursos from "@/pages/admin/AdminConcursos";
+import AdminNoticias from "@/pages/admin/AdminNoticias";
 import AdminOrders from "@/pages/admin/AdminOrders";
 
 const ProtectedRoute = ({ children }) => {
@@ -39,9 +45,13 @@ function App() {
             <Routes>
               <Route element={<Layout />}>
                 <Route path="/" element={<Home />} />
-                <Route path="/produtos" element={<Catalog />} />
-                <Route path="/categoria/:slug" element={<Catalog />} />
-                <Route path="/produto/:slug" element={<ProductDetail />} />
+                <Route path="/apostilas" element={<Catalog />} />
+                <Route path="/area/:slug" element={<Catalog />} />
+                <Route path="/apostila/:slug" element={<ProductDetail />} />
+                <Route path="/concursos" element={<Concursos />} />
+                <Route path="/noticias" element={<Noticias />} />
+                <Route path="/noticias/:slug" element={<NoticiaDetail />} />
+                <Route path="/bancas" element={<Bancas />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/pagamento/sucesso" element={<PaymentSuccess />} />
                 <Route path="/pagamento/cancelado" element={<PaymentCancel />} />
@@ -49,8 +59,8 @@ function App() {
                 <Route path="/contato" element={<Contato />} />
                 <Route path="/politica-de-privacidade" element={<Privacidade />} />
                 <Route path="/termos" element={<Termos />} />
-                <Route path="/trocas-e-devolucoes" element={<Trocas />} />
-                <Route path="/frete" element={<Frete />} />
+                <Route path="/reembolso" element={<Reembolso />} />
+                <Route path="/entrega" element={<Entrega />} />
               </Route>
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route
@@ -62,7 +72,9 @@ function App() {
                 }
               >
                 <Route index element={<AdminDashboard />} />
-                <Route path="produtos" element={<AdminProducts />} />
+                <Route path="materiais" element={<AdminProducts />} />
+                <Route path="concursos" element={<AdminConcursos />} />
+                <Route path="noticias" element={<AdminNoticias />} />
                 <Route path="pedidos" element={<AdminOrders />} />
               </Route>
             </Routes>

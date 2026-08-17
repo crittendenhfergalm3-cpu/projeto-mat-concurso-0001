@@ -1,51 +1,50 @@
 import { PageShell } from "@/components/PageShell";
-import { BUSINESS, fullAddress } from "@/data/business";
+import { BUSINESS } from "@/data/business";
 
 const Privacidade = () => (
-  <PageShell title="Política de Privacidade" subtitle="Última atualização: 2026">
+  <PageShell title="Política de Privacidade" subtitle="Como tratamos os seus dados (LGPD)">
     <p>
-      A <strong>{BUSINESS.name}</strong> ({BUSINESS.legalName}, CNPJ {BUSINESS.cnpj}) respeita a
-      sua privacidade e está comprometida em proteger os dados pessoais dos seus clientes,
-      em conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018).
+      A <strong>{BUSINESS.name}</strong> ({BUSINESS.legalName}, CNPJ {BUSINESS.cnpj}) leva a sua
+      privacidade a sério e trata os dados pessoais de acordo com a Lei Geral de Proteção de Dados
+      (Lei nº 13.709/2018 - LGPD).
     </p>
 
     <h2>1. Dados que coletamos</h2>
     <ul>
-      <li>Dados de identificação: nome, e-mail e telefone.</li>
-      <li>Dados de entrega: CEP e endereço.</li>
-      <li>Dados de pagamento processados de forma segura pela Stripe (não armazenamos dados de cartão).</li>
-      <li>Dados de navegação, como cookies e páginas visitadas.</li>
+      <li><strong>Dados de cadastro/compra:</strong> nome, e-mail, telefone e, opcionalmente, CPF.</li>
+      <li><strong>Dados de navegação:</strong> informações técnicas como cookies e páginas visitadas.</li>
     </ul>
 
-    <h2>2. Como usamos os dados</h2>
+    <h2>2. Como usamos</h2>
     <ul>
-      <li>Processar e entregar pedidos.</li>
-      <li>Enviar confirmações e comunicações sobre a sua compra.</li>
-      <li>Prestar atendimento e suporte.</li>
-      <li>Melhorar a experiência de navegação na loja.</li>
+      <li>Processar pedidos e entregar os materiais adquiridos.</li>
+      <li>Enviar comunicações sobre a sua compra e suporte ao aluno.</li>
+      <li>Melhorar a experiência no site e cumprir obrigações legais.</li>
     </ul>
 
-    <h2>3. Compartilhamento</h2>
+    <h2>3. Pagamentos</h2>
     <p>
-      Não vendemos seus dados. Compartilhamos informações apenas com parceiros essenciais à
-      operação (ex.: processador de pagamento Stripe e transportadoras), sempre no limite
-      necessário para concluir o seu pedido.
+      Os dados de pagamento com cartão são processados diretamente pela <strong>Stripe</strong>, que
+      possui certificação de segurança PCI-DSS. Não temos acesso nem armazenamos os dados do seu cartão.
     </p>
 
-    <h2>4. Segurança</h2>
+    <h2>4. Compartilhamento</h2>
     <p>
-      Utilizamos certificado SSL (https) e boas práticas de segurança para proteger seus dados
-      durante a navegação e o pagamento.
+      Não vendemos seus dados. Compartilhamos informações apenas com parceiros necessários à operação
+      (ex.: processador de pagamento e serviço de e-mail) e quando exigido por lei.
     </p>
 
     <h2>5. Seus direitos</h2>
     <p>
-      Você pode solicitar acesso, correção ou exclusão dos seus dados a qualquer momento pelo
-      e-mail <a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a>.
+      Você pode solicitar acesso, correção ou exclusão dos seus dados, bem como revogar consentimentos,
+      escrevendo para <strong>{BUSINESS.email}</strong>.
     </p>
 
-    <h2>6. Contato do controlador</h2>
-    <p>{BUSINESS.legalName} — {fullAddress} — {BUSINESS.email}</p>
+    <h2>6. Cookies</h2>
+    <p>
+      Utilizamos cookies para o funcionamento do site e análise de uso. Você pode gerenciá-los nas
+      configurações do seu navegador.
+    </p>
   </PageShell>
 );
 

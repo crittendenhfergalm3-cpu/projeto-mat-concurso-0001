@@ -1,45 +1,45 @@
 import { PageShell } from "@/components/PageShell";
 import { BUSINESS } from "@/data/business";
 
-const Trocas = () => (
-  <PageShell title="Trocas e Devoluções" subtitle="Seus direitos como consumidor">
+const Reembolso = () => (
+  <PageShell title="Reembolso e Direito de Arrependimento" subtitle="Sua compra protegida pelo Código de Defesa do Consumidor">
     <p>
-      A <strong>{BUSINESS.name}</strong> segue o Código de Defesa do Consumidor (CDC). Confira as
-      condições para trocas e devoluções.
+      A <strong>{BUSINESS.name}</strong> respeita integralmente o Código de Defesa do Consumidor (CDC).
+      Como nossos produtos são digitais, esta política explica como funciona o direito de arrependimento
+      e o reembolso.
     </p>
 
-    <h2>1. Direito de arrependimento (compras online)</h2>
+    <h2>Direito de arrependimento (7 dias)</h2>
     <p>
-      Você pode desistir da compra em até <strong>7 dias corridos</strong> após o recebimento do
-      produto, conforme o Art. 49 do CDC. O produto deve estar sem uso, na embalagem original e
-      acompanhado da nota fiscal.
+      Conforme o <strong>art. 49 do CDC</strong>, você pode desistir da compra em até <strong>7 (sete)
+      dias corridos</strong> a contar da data da aquisição do material, sem necessidade de justificativa.
+      Nesse caso, o valor pago será <strong>integralmente reembolsado</strong>.
     </p>
 
-    <h2>2. Produtos com defeito</h2>
-    <p>
-      Em caso de defeito de fabricação, entre em contato em até 90 dias (bens duráveis) para
-      avaliarmos a troca ou o reparo, conforme o Art. 26 do CDC.
-    </p>
-
-    <h2>3. Como solicitar</h2>
+    <h2>Como solicitar</h2>
     <ul>
-      <li>Entre em contato pelo e-mail <a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a> ou pelo WhatsApp {BUSINESS.phone}.</li>
-      <li>Informe o número do pedido e o motivo da troca/devolução.</li>
-      <li>Nossa equipe orientará sobre o envio ou a coleta do produto.</li>
+      <li>Envie um e-mail para <strong>{BUSINESS.email}</strong> ou mensagem para o WhatsApp <strong>{BUSINESS.phone}</strong>.</li>
+      <li>Informe o número do pedido e o e-mail utilizado na compra.</li>
+      <li>Não é necessário justificar o motivo dentro do prazo de 7 dias.</li>
     </ul>
 
-    <h2>4. Reembolso</h2>
+    <h2>Prazo do estorno</h2>
+    <ul>
+      <li><strong>Cartão de crédito:</strong> o estorno é solicitado imediatamente e aparece na fatura conforme o prazo da operadora (geralmente 1 a 2 faturas).</li>
+      <li><strong>Outros meios:</strong> o reembolso é processado em até 10 dias úteis após a solicitação.</li>
+    </ul>
+
+    <h2>Após os 7 dias</h2>
     <p>
-      Após o recebimento e a análise do produto, o reembolso é realizado pelo mesmo meio de
-      pagamento em até 10 dias úteis. Compras via cartão são estornadas pela Stripe.
+      Passado o prazo legal de arrependimento, por se tratar de conteúdo digital já disponibilizado,
+      a devolução poderá ser analisada caso a caso — por exemplo, em situações de erro no material ou
+      problema técnico de acesso não resolvido pelo suporte.
     </p>
 
-    <h2>5. Itens não elegíveis</h2>
-    <p>
-      Produtos cortados sob medida, misturados ou usados podem não ser elegíveis para devolução,
-      salvo em caso de defeito.
+    <p className="text-sm text-slate-400">
+      Este documento não substitui a legislação vigente e deve ser interpretado em conjunto com o CDC.
     </p>
   </PageShell>
 );
 
-export default Trocas;
+export default Reembolso;

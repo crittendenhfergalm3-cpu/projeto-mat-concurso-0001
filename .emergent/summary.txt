@@ -1,0 +1,123 @@
+<analysis>**original_problem_statement**: 
+The user wants to build a legitimate, Google Ads-compliant e-commerce web app for a construction materials store called São José Material de Construção. The main goal is to avoid Google Ads suspensions by having a fully compliant site with real business data (CNPJ, address, etc.), institutional/legal pages (Privacy, Terms, Returns, Shipping), and secure checkout. The user wants both Stripe (online payment) and WhatsApp checkout options, and a protected admin panel to manage products and orders. The user later requested a code audit to prepare the repository for migration to their own VPS via GitHub.
+
+**PRODUCT REQUIREMENTS**:
+- Full product catalog with categories, search, and cart.
+- Checkout with Stripe (real payment) and WhatsApp integration.
+- Mandatory Google Ads compliance pages: Sobre, Contato, Privacidade, Termos, Trocas, Frete.
+- Visually clean UI/UX with construction-themed colors (Orange/Yellow).
+- Secure Admin Panel (Dashboard, Products, Orders management).
+- Codebase must be exportable to a standard VPS (no hard lock-in to Emergent internal APIs for core functionalities like image uploads).
+
+**User's preferred language**: Portuguese (pt-BR). You MUST respond in the user's preferred language only.
+
+**what currently exists?** 
+A fully functional, Google Ads-compliant full-stack e-commerce application. The frontend is built with React + Tailwind + Shadcn UI, featuring a product catalog, dual-checkout system (Stripe + WhatsApp), legal pages, and a secure admin panel. The backend is powered by FastAPI and MongoDB, handling products, orders, auth, and Stripe webhooks. The codebase has been heavily audited and refactored to be VPS-ready, including a local file upload fallback, clean , , and a comprehensive  for external deployment. An SVG vector logo is implemented to avoid tracking concerns.
+
+**Last working item**: 
+- Last item agent was working: Updating the Admin Panel login credentials based on the user's request and verifying the change.
+- Status: RESOLVED
+- Agent Testing Done: Y
+- Which testing method agent to use? NA (Testing was completed via bash curl).
+- User Testing Done: N
+
+**All Pending/In progress Issue list**:
+None. All current issues and requests have been resolved.
+
+**In progress Task List**:
+None.
+
+**Upcoming and Future Tasks**:
+Upcoming Tasks:
+- **P1 - Domain & Deploy Assistance**: The user is planning to buy  via Cloudflare. They will likely need assistance configuring the DNS, SSL, and deploying the app on their VPS or pointing it to the current environment.
+- **P2 - Admin Panel Enhancements**: Earlier, the agent proposed adding an order status update feature (e.g., mark as sent/delivered) or automated new order alerts to the admin panel, which the user hasn't explicitly accepted or rejected yet due to shifting focus to credentials.
+
+**Completed work in this session**:
+- Initial setup of FastAPI + MongoDB backend and React frontend (DONE).
+- Google Ads compliance pages setup (, , , , , ) (DONE).
+- Stripe Checkout and WhatsApp cart routing integration (DONE).
+- Admin Panel implementation (Auth, Dashboard, Products, Orders) (DONE).
+- Design and implementation of custom SVG vector logo () to resolve user's fear of image trackers (DONE).
+- VPS Code Audit and Refactoring: Fixed  to protect , created , implemented local disk image upload fallback in , and generated VPS deployment  (DONE).
+- Updated admin credentials and verified old ones were invalidated (DONE).
+
+**Earlier issues found/mentioned but not fixed**:
+None.
+
+**Known issue recurrence from previous fork**:
+- Issue recurrence in previous fork: None (first session).
+- Recurrence count: 0
+- Status: NA
+
+**Code Architecture**:
+
+
+**Key Technical Concepts**:
+Frontend: React, Tailwind CSS, Shadcn UI, React Router, Context API.
+Backend: FastAPI, Motor (Async MongoDB), PyJWT, Stripe SDK, Python / (for local file uploads).
+Architecture: REST API with JWT-based protected routes for admin, public routes for catalog, hybrid checkout flow (Stripe API + WhatsApp URL generation).
+
+**key DB schema**:
+- : {email, hashed_password, is_admin}
+- : {name, slug, description, price, stock, category, image, is_featured, created_at}
+- : {customer (name, email, phone, document, address), items, total, status, payment_method, stripe_session_id, created_at}
+
+**changes in tech stack**:
+- Added fallback local file storage () instead of relying exclusively on Emergent Object Storage integration, ensuring the project can be hosted on a raw VPS.
+
+**All files of reference**:
+1. : Core API logic, including VPS-compatible local image upload endpoints.
+2. : Contains all the real business information (CNPJ, address, WhatsApp) used throughout the UI to ensure Google Ads compliance.
+3. : Custom SVG logo component created to avoid image metadata risks.
+4. : Step-by-step instructions generated for the user to deploy the application on their own VPS.
+5. : Cleaned dependencies for external hosting.
+6. : Contains the active Admin credentials.
+
+**Areas that need refactoring**:
+None at the moment. Code was recently audited and refactored for VPS export.
+
+**key api endpoints**:
+- : Admin authentication.
+- : Fetch catalog.
+- : Create product (Admin only).
+- : Handles image uploads with local disk fallback for VPS (Admin only).
+- : Generates Stripe session URL.
+- : Saves order and returns formatted WhatsApp text.
+
+**Critical Info for New Agent**:
+- **VPS Compatibility**: The user intends to host this on their own VPS using GitHub. Do NOT introduce dependencies on Emergent internal tools (like  for core storage) without a standard open-source/local fallback. The app currently uses a local  folder fallback for images which was thoroughly tested.
+- **Google Ads Compliance**: The primary goal of the user is avoiding Google Ads suspension. Do not remove or obscure the CNPJ, address, contact details, or legal pages. Do not use generic image files for the logo (the user specifically requested the SVG code implementation due to fears of tracking/links).
+- **Admin Credentials**: The admin credentials were changed to  / . Always check .
+
+**documents and test reports created in this job**:
+- 
+- 
+- 
+- 
+-  (VPS Deployment Guide)
+
+**Last 10 User Messages and any pending HUMAN messages**:
+1. (User) Asked if the site has an admin panel. (DONE)
+2. (User) Requested to change the admin credentials to  and . (DONE - *Agent updated , restarted backend, and tested the new login.*)
+
+**Project Health Check**:
+- Broken: None
+- Mocked: None (User explicitly requested real Stripe integration, everything else uses actual DB).
+
+**3rd Party Integrations**:
+- Stripe (Payments) — requires User API Key (Currently using a Sandbox test key in ).
+- WhatsApp (Routing/Checkout) — Uses standard  URL generation (No API key needed).
+
+**Testing status**:
+- Testing agent used after significant changes: YES (Iteration 1 for initial build, Iteration 2 for VPS refactor audit).
+- Troubleshoot agent used after agent stuck in loop: NO
+- Test files created: , 
+- Known regressions: None
+
+**Credentials to test flow**:
+Check .
+Admin Email: 
+Admin Password: 
+
+**What agent forgot to execute**:
+The agent successfully executed all user requests, including the code audit for VPS export and the specific credential update. Nothing was forgotten.</analysis>

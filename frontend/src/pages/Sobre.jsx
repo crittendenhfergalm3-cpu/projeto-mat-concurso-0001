@@ -1,35 +1,33 @@
 import { PageShell } from "@/components/PageShell";
 import { BUSINESS, fullAddress } from "@/data/business";
-import { Store, Truck, ShieldCheck, Users } from "lucide-react";
+import { Award, Download, ShieldCheck, Users } from "lucide-react";
 
 const Sobre = () => (
-  <PageShell title="Quem Somos" subtitle="Conheça a São José Material de Construção">
+  <PageShell title="Quem Somos" subtitle="Conheça a TÔ APROVADO Concursos Públicos">
     <p>
-      A <strong>{BUSINESS.name}</strong> é uma loja de materiais de construção
-      localizada em {BUSINESS.address.city}/{BUSINESS.address.state}. Nascemos com o
-      propósito de oferecer tudo o que a sua obra precisa — do prego à betoneira — com
-      preço justo, atendimento próximo e entrega rápida para toda a região.
+      A <strong>{BUSINESS.name}</strong> é uma empresa especializada em preparação para concursos
+      públicos, com atuação em todo o Brasil por meio de conteúdo 100% digital. Nascemos com um
+      propósito claro: transformar a rotina de estudos de milhares de concurseiros em aprovações reais.
     </p>
     <p>
-      Registrada como <strong>{BUSINESS.legalName}</strong>, CNPJ{" "}
-      <strong>{BUSINESS.cnpj}</strong>, atuamos no comércio varejista de materiais de
-      construção em geral, atendendo consumidores finais, pedreiros e pequenos
-      empreiteiros com produtos de marcas reconhecidas no mercado.
-
+      Registrada como <strong>{BUSINESS.legalName}</strong>, CNPJ <strong>{BUSINESS.cnpj}</strong>,
+      nossa atividade principal são os cursos preparatórios para concursos. Produzimos apostilas,
+      cursos em videoaulas e materiais direcionados por banca examinadora, sempre atualizados de
+      acordo com os editais mais recentes.
     </p>
 
     <div className="grid gap-4 py-4 sm:grid-cols-2">
       {[
-        { icon: Store, t: "Loja física", d: "Endereço próprio e CNPJ ativo em São Luís/MA." },
-        { icon: Truck, t: "Entrega rápida", d: "Levamos seu material direto na obra." },
-        { icon: ShieldCheck, t: "Compra segura", d: "Pagamento protegido e nota fiscal." },
-        { icon: Users, t: "Atendimento próximo", d: "Suporte por telefone e WhatsApp." },
+        { icon: Award, t: "Foco na aprovação", d: "Material direcionado ao edital e ao estilo da banca." },
+        { icon: Download, t: "Acesso imediato", d: "Conteúdo digital liberado logo após o pagamento." },
+        { icon: ShieldCheck, t: "Empresa registrada", d: "CNPJ ativo e pagamento seguro via Stripe." },
+        { icon: Users, t: "Suporte ao aluno", d: "Atendimento por e-mail e WhatsApp." },
       ].map((f, i) => (
-        <div key={i} className="flex items-start gap-3 rounded-md border border-gray-200 bg-white p-4">
-          <f.icon className="mt-0.5 h-5 w-5 shrink-0 text-orange-600" />
+        <div key={i} className="flex items-start gap-3 rounded-md border border-slate-200 bg-white p-4">
+          <f.icon className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
           <div>
-            <div className="font-semibold text-gray-900">{f.t}</div>
-            <div className="text-sm text-gray-500">{f.d}</div>
+            <div className="font-semibold text-slate-900">{f.t}</div>
+            <div className="text-sm text-slate-500">{f.d}</div>
           </div>
         </div>
       ))}
@@ -37,13 +35,18 @@ const Sobre = () => (
 
     <h2>Nossa missão</h2>
     <p>
-      Ser a referência em materiais de construção na nossa região, ajudando cada cliente a
-      construir e reformar com segurança, economia e confiança.
+      Democratizar o acesso a um material de estudo de qualidade, ajudando cada candidato a estudar
+      de forma inteligente, organizada e direcionada — do primeiro contato com o edital até a nomeação.
     </p>
 
     <h2>Onde estamos</h2>
     <p>{fullAddress}</p>
-    <p>Horário de funcionamento: {BUSINESS.hours}</p>
+    <p>{BUSINESS.hours}</p>
+
+    <p className="text-sm text-slate-400">
+      Importante: a TÔ APROVADO é uma empresa privada de cursos preparatórios e não possui qualquer
+      vínculo com órgãos públicos, bancas examinadoras ou o Governo Federal.
+    </p>
   </PageShell>
 );
 

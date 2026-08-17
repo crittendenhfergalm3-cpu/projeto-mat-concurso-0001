@@ -25,7 +25,7 @@ const CartDrawer = () => {
       <SheetContent className="flex w-full flex-col sm:max-w-md" data-testid="cart-drawer">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2 font-display">
-            <ShoppingCart className="h-5 w-5 text-orange-600" />
+            <ShoppingCart className="h-5 w-5 text-emerald-600" />
             Seu carrinho ({count})
           </SheetTitle>
         </SheetHeader>
@@ -51,17 +51,17 @@ const CartDrawer = () => {
                     />
                     <div className="flex flex-1 flex-col">
                       <Link
-                        to={`/produto/${i.slug}`}
+                        to={`/apostila/${i.slug}`}
                         onClick={() => setOpen(false)}
-                        className="line-clamp-2 text-sm font-medium text-gray-900 hover:text-orange-600"
+                        className="line-clamp-2 text-sm font-medium text-gray-900 hover:text-emerald-600"
                       >
                         {i.name}
                       </Link>
-                      <span className="text-sm font-bold text-orange-600">{formatBRL(i.price)}</span>
+                      <span className="text-sm font-bold text-emerald-600">{formatBRL(i.price)}</span>
                       <div className="mt-1 flex items-center gap-2">
                         <div className="flex items-center rounded-md border border-gray-200">
                           <button
-                            className="px-2 py-1 text-gray-600 hover:text-orange-600"
+                            className="px-2 py-1 text-gray-600 hover:text-emerald-600"
                             onClick={() => updateQty(i.product_id, i.quantity - 1)}
                             data-testid={`cart-decr-${i.product_id}`}
                           >
@@ -69,7 +69,7 @@ const CartDrawer = () => {
                           </button>
                           <span className="min-w-8 text-center text-sm font-medium">{i.quantity}</span>
                           <button
-                            className="px-2 py-1 text-gray-600 hover:text-orange-600"
+                            className="px-2 py-1 text-gray-600 hover:text-emerald-600"
                             onClick={() => updateQty(i.product_id, i.quantity + 1)}
                             data-testid={`cart-incr-${i.product_id}`}
                           >
@@ -95,10 +95,10 @@ const CartDrawer = () => {
                 <span>Subtotal</span>
                 <span data-testid="cart-subtotal">{formatBRL(subtotal)}</span>
               </div>
-              <p className="text-xs text-muted-foreground">Frete calculado no checkout.</p>
+              <p className="text-xs text-muted-foreground">Conteúdo digital · acesso imediato após o pagamento.</p>
               <Button
                 onClick={goCheckout}
-                className="w-full bg-orange-600 py-6 text-base hover:bg-orange-700"
+                className="w-full bg-emerald-600 py-6 text-base hover:bg-emerald-700"
                 data-testid="cart-checkout-button"
               >
                 <Lock className="mr-2 h-4 w-4" /> Finalizar compra
